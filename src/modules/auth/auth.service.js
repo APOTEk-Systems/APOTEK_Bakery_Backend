@@ -1,3 +1,4 @@
+
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -49,6 +50,7 @@ export const loginUser = async (email, password, res) => {
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
+    sameSite:'none',
     expires: refreshTokenExpiry,
   });
 
@@ -88,6 +90,7 @@ export const refreshToken = async (req, res) => {
   res.cookie('refreshToken', newRefreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
+    sameSite:'none',
     expires: newRefreshTokenExpiry,
   });
 
