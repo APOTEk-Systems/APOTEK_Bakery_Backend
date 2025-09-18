@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,269 +8,303 @@ datasource db {
 }
 
 model Product {
-  id                Int             @id @default(autoincrement())
-  name              String
-  description       String?
-  price             Float
-  prepTime          Int?
-  instructions      String          @db.Text // Stores a stringified JSON array of instructions
-  quantity          Int             @default(0)
-  image             String?
-  status            String          @default("active")
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  createdBy         User            @relation("ProductCreatedBy", fields: [createdById], references: [id])
-  createdById       Int
-  updatedBy         User?            @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
-  updatedById       Int?
-  saleItems         SaleItem[]
-  productionRuns    ProductionRun[]
-  productRecipes    ProductRecipe[]
+  id             Int             @id @default(autoincrement())
+  name           String
+  description    String?
+  price          Float
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  createdById    Int
+  updatedById    Int?
+  image          String?
+  instructions   String          @db.Text
+  prepTime       Int?
+  quantity       Int             @default(0)
+  status         String          @default("active")
+  createdBy      User            @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  updatedBy      User?           @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
+  productRecipes ProductRecipe[]
+  productionRuns ProductionRun[]
+  saleItems      SaleItem[]
+
+  @@index([createdById], map: "Product_createdById_fkey")
+  @@index([updatedById], map: "Product_updatedById_fkey")
 }
 
-
 model User {
-  id                           Int                   @id @default(autoincrement())
-  email                        String                @unique
-  password                     String // Added for authentication
-  name                         String?
-  role                         String                @default("cashier") // Added for roles
-  permissions                  String                @db.Text // Changed to String and @db.Text
-  refreshToken                 String?               @unique // Add this line
-  refreshTokenExpiresAt        DateTime?
-  status                       String                @default("active") // Added for user status (soft delete)
-  createdAt                    DateTime              @default(now())
-  updatedAt                    DateTime              @updatedAt
-  createdProducts              Product[]             @relation("ProductCreatedBy")
-  updatedProducts              Product[]             @relation("ProductUpdatedBy")
-  createdCustomers             Customer[]            @relation("CustomerCreatedBy")
-  updatedCustomers             Customer[]            @relation("CustomerUpdatedBy")
-  sales                        Sale[]
-  purchaseOrders               PurchaseOrder[]       @relation("PurchaseOrderCreatedBy")
-  approvedPurchaseOrders       PurchaseOrder[]       @relation("PurchaseOrderApprovedBy")
-  createdGoodsReceipts         GoodsReceipt[]        @relation("GoodsReceiptCreatedBy")
-  createdInventoryItems        InventoryItem[]       @relation("InventoryItemCreatedBy")
-  updatedInventoryItems        InventoryItem[]       @relation("InventoryItemUpdatedBy")
-  createdInventoryAdjustments  InventoryAdjustment[] @relation("InventoryAdjustmentCreatedBy")
-  createdExpenses              Expense[]             @relation("ExpenseCreatedBy")
-  approvedExpenses             Expense[]             @relation("ExpenseApprovedBy")
-  updatedExpenses              Expense[]             @relation("ExpenseUpdatedBy")
-  producedProductionRuns       ProductionRun[]       @relation("ProductionRunProducedBy")
-  updatedProductionRuns        ProductionRun[]       @relation("ProductionRunUpdatedBy")
-  auditLogs                    AuditLog[]
-
-  Expense Expense[] @relation("PurchaseOrderApprovedBy")
+  id                          Int                   @id @default(autoincrement())
+  email                       String                @unique
+  name                        String?
+  createdAt                   DateTime              @default(now())
+  updatedAt                   DateTime              @updatedAt
+  password                    String
+  permissions                 String                @db.Text
+  role                        String                @default("cashier")
+  status                      String                @default("active")
+  refreshToken                String?               @unique
+  refreshTokenExpiresAt       DateTime?
+  auditLogs                   AuditLog[]
+  createdCustomers            Customer[]            @relation("CustomerCreatedBy")
+  updatedCustomers            Customer[]            @relation("CustomerUpdatedBy")
+  Expense                     Expense[]             @relation("PurchaseOrderApprovedBy")
+  createdExpenses             Expense[]             @relation("ExpenseCreatedBy")
+  updatedExpenses             Expense[]             @relation("ExpenseUpdatedBy")
+  createdGoodsReceipts        GoodsReceipt[]        @relation("GoodsReceiptCreatedBy")
+  createdInventoryAdjustments InventoryAdjustment[] @relation("InventoryAdjustmentCreatedBy")
+  createdInventoryItems       InventoryItem[]       @relation("InventoryItemCreatedBy")
+  updatedInventoryItems       InventoryItem[]       @relation("InventoryItemUpdatedBy")
+  createdProducts             Product[]             @relation("ProductCreatedBy")
+  updatedProducts             Product[]             @relation("ProductUpdatedBy")
+  producedProductionRuns      ProductionRun[]       @relation("ProductionRunProducedBy")
+  updatedProductionRuns       ProductionRun[]       @relation("ProductionRunUpdatedBy")
+  approvedPurchaseOrders      PurchaseOrder[]       @relation("PurchaseOrderApprovedBy")
+  purchaseOrders              PurchaseOrder[]       @relation("PurchaseOrderCreatedBy")
+  sales                       Sale[]
+  approvedExpenses            Expense[]             @relation("ExpenseApprovedBy")
 }
 
 model Customer {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   name          String
-  email         String   @unique
+  email         String    @unique
   phone         String?
   address       String?
-  status        String   @default("active")
-  isCredit      Boolean  @default(false)
-  creditLimit   Float?   
-  currentCredit Float?   
-  loyaltyPoints Int?     
+  status        String    @default("active")
+  isCredit      Boolean   @default(false)
+  creditLimit   Float?
+  currentCredit Float?
+  loyaltyPoints Int?
   birthday      DateTime?
   notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  createdBy     User     @relation("CustomerCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   createdById   Int
-  updatedBy     User?     @relation("CustomerUpdatedBy", fields: [updatedById], references: [id])
   updatedById   Int?
+  createdBy     User      @relation("CustomerCreatedBy", fields: [createdById], references: [id])
+  updatedBy     User?     @relation("CustomerUpdatedBy", fields: [updatedById], references: [id])
   sales         Sale[]
+
+  @@index([createdById], map: "Customer_createdById_fkey")
+  @@index([updatedById], map: "Customer_updatedById_fkey")
 }
 
 model Sale {
-  id            Int      @id @default(autoincrement())
-  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  id            Int        @id @default(autoincrement())
   customerId    Int?
-  soldBy        User     @relation(fields: [soldById], references: [id])
   soldById      Int
-  isCredit      Boolean  @default(false)
+  isCredit      Boolean    @default(false)
   creditDueDate DateTime?
   total         Float
-  status        String   @default("completed")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  status        String     @default("completed")
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  customer      Customer?  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  soldBy        User       @relation(fields: [soldById], references: [id])
   items         SaleItem[]
+
+  @@index([customerId], map: "Sale_customerId_fkey")
+  @@index([soldById], map: "Sale_soldById_fkey")
 }
 
 model SaleItem {
-  id        Int      @id @default(autoincrement())
-  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  id        Int     @id @default(autoincrement())
   saleId    Int
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId Int
   quantity  Int
   price     Float
   notes     String?
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([productId], map: "SaleItem_productId_fkey")
+  @@index([saleId], map: "SaleItem_saleId_fkey")
 }
 
 model Supplier {
-  id           Int       @id @default(autoincrement())
-  name         String    @unique
-  contactInfo  String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id             Int             @id @default(autoincrement())
+  name           String          @unique
+  contactInfo    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   purchaseOrders PurchaseOrder[]
 }
 
 model PurchaseOrder {
-  id        Int      @id @default(autoincrement())
-  supplierId Int   
-  totalCost Float
-  supplier  Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  status    String   @default("pending")
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  createdBy User     @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id])
-  createdById Int
-  approvedBy User?    @relation("PurchaseOrderApprovedBy", fields: [approvedById], references: [id])
-  approvedById Int?
-  items     PurchaseOrderItem[]
+  id            Int                 @id @default(autoincrement())
+  totalCost     Float
+  status        String              @default("pending")
+  notes         String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  createdById   Int
+  approvedById  Int?
+  supplierId    Int
   goodsReceipts GoodsReceipt[]
+  approvedBy    User?               @relation("PurchaseOrderApprovedBy", fields: [approvedById], references: [id])
+  createdBy     User                @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id])
+  supplier      Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  items         PurchaseOrderItem[]
+
+  @@index([approvedById], map: "PurchaseOrder_approvedById_fkey")
+  @@index([createdById], map: "PurchaseOrder_createdById_fkey")
+  @@index([supplierId], map: "PurchaseOrder_supplierId_fkey")
 }
 
 model PurchaseOrderItem {
-  id        Int      @id @default(autoincrement())
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  id              Int           @id @default(autoincrement())
   purchaseOrderId Int
+  quantity        Int
   inventoryItemId Int
   inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
-  quantity  Int
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
 
+  @@index([inventoryItemId], map: "PurchaseOrderItem_inventoryItemId_fkey")
+  @@index([purchaseOrderId], map: "PurchaseOrderItem_purchaseOrderId_fkey")
 }
 
 model GoodsReceipt {
-  id        Int      @id @default(autoincrement())
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  purchaseOrderId Int
+  id               Int           @id @default(autoincrement())
+  purchaseOrderId  Int
   receivedQuantity Int
-  status    String   @default("pending")
-  receivedDate DateTime @default(now())
-  notes     String?
-  createdBy User     @relation("GoodsReceiptCreatedBy", fields: [createdById], references: [id])
-  createdById Int
+  status           String        @default("pending")
+  receivedDate     DateTime      @default(now())
+  notes            String?
+  createdById      Int
+  createdBy        User          @relation("GoodsReceiptCreatedBy", fields: [createdById], references: [id])
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([createdById], map: "GoodsReceipt_createdById_fkey")
+  @@index([purchaseOrderId], map: "GoodsReceipt_purchaseOrderId_fkey")
 }
 
 model InventoryItem {
-  id                    Int                   @id @default(autoincrement())
-  name                  String
-  currentQuantity       Int
-  unit                  String
-  minLevel              Int
-  maxLevel              Int
-  cost                  Float
-  type                  String                @default("raw_material")  //use enum later
-  status                String                @default("in-stock")
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  createdBy             User                  @relation("InventoryItemCreatedBy", fields: [createdById], references: [id])
-  createdById           Int
-  updatedBy             User?                 @relation("InventoryItemUpdatedBy", fields: [updatedById], references: [id])
-  updatedById           Int?
+  id                   Int                             @id @default(autoincrement())
+  name                 String
+  currentQuantity      Int
+  minLevel             Int
+  maxLevel             Int
+  cost                 Float
+  status               String                          @default("in-stock")
+  createdAt            DateTime                        @default(now())
+  updatedAt            DateTime                        @updatedAt
+  createdById          Int
+  updatedById          Int?
+  unit                 String
+  type                 String                          @default("raw_material")
+  adjustments          InventoryAdjustment[]
+  createdBy            User                            @relation("InventoryItemCreatedBy", fields: [createdById], references: [id])
+  updatedBy            User?                           @relation("InventoryItemUpdatedBy", fields: [updatedById], references: [id])
+  productRecipes       ProductRecipe[]
+  productionDeductions ProductionIngredientDeduction[]
+  PurchaseOrderItem    PurchaseOrderItem[]
 
-  PurchaseOrderItem     PurchaseOrderItem[]
-  productRecipes        ProductRecipe[]
-  productionDeductions  ProductionIngredientDeduction[]
-  adjustments           InventoryAdjustment[]
+  @@index([createdById], map: "InventoryItem_createdById_fkey")
+  @@index([updatedById], map: "InventoryItem_updatedById_fkey")
 }
 
 model InventoryAdjustment {
   id              Int           @id @default(autoincrement())
-  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
   inventoryItemId Int
   amount          Float
   reason          String?
   createdAt       DateTime      @default(now())
-  createdBy       User          @relation("InventoryAdjustmentCreatedBy", fields: [createdById], references: [id])
   createdById     Int
+  createdBy       User          @relation("InventoryAdjustmentCreatedBy", fields: [createdById], references: [id])
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  @@index([createdById], map: "InventoryAdjustment_createdById_fkey")
+  @@index([inventoryItemId], map: "InventoryAdjustment_inventoryItemId_fkey")
 }
 
 model Expense {
-  id        Int      @id @default(autoincrement())
-  amount    Float
-  category  String
-  date      DateTime
-  status    String   @default("complete")
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  createdBy User     @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
-  createdById Int
-  approvedBy User?    @relation("PurchaseOrderApprovedBy", fields: [approvedById], references: [id])
+  id           Int      @id @default(autoincrement())
+  amount       Float
+  category     String
+  date         DateTime
+  status       String   @default("pending")
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdById  Int
   approvedById Int?
-  updatedBy User?    @relation("ExpenseUpdatedBy", fields: [updatedById], references: [id])
-  updatedById Int?
+  updatedById  Int?
+  approvedBy   User?    @relation("PurchaseOrderApprovedBy", fields: [approvedById], references: [id])
+  createdBy    User     @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+  updatedBy    User?    @relation("ExpenseUpdatedBy", fields: [updatedById], references: [id])
+  User         User[]   @relation("ExpenseApprovedBy")
 
-  User User[] @relation("ExpenseApprovedBy")
+  @@index([approvedById], map: "Expense_approvedById_fkey")
+  @@index([createdById], map: "Expense_createdById_fkey")
+  @@index([updatedById], map: "Expense_updatedById_fkey")
 }
 
 model ProductionRun {
-  id                  Int      @id @default(autoincrement())
+  id                  Int                             @id @default(autoincrement())
   productId           Int
-  product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantityProduced    Int
-  date                DateTime @default(now())
-  producedBy          User     @relation("ProductionRunProducedBy", fields: [producedById], references: [id])
+  date                DateTime                        @default(now())
   producedById        Int
-  ingredientsDeducted ProductionIngredientDeduction[]
   cost                Float
   notes               String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  updatedBy           User?     @relation("ProductionRunUpdatedBy", fields: [updatedById], references: [id])
+  createdAt           DateTime                        @default(now())
+  updatedAt           DateTime                        @updatedAt
   updatedById         Int?
+  finalizedAt         DateTime?
+  status              ProductionStatus                @default(PENDING)
+  ingredientsDeducted ProductionIngredientDeduction[]
+  producedBy          User                            @relation("ProductionRunProducedBy", fields: [producedById], references: [id])
+  product             Product                         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  updatedBy           User?                           @relation("ProductionRunUpdatedBy", fields: [updatedById], references: [id])
 
-  status           ProductionStatus             @default(PENDING)
-  finalizedAt      DateTime?                    // set when locked
-}
-
-enum ProductionStatus {
-  PENDING      // still editable today
-  FINALIZED    // locked after daily close
+  @@index([producedById], map: "ProductionRun_producedById_fkey")
+  @@index([productId], map: "ProductionRun_productId_fkey")
+  @@index([updatedById], map: "ProductionRun_updatedById_fkey")
 }
 
 model ProductRecipe {
   id              Int           @id @default(autoincrement())
   productId       Int
-  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
   inventoryItemId Int
-  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
   amountRequired  Float
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, inventoryItemId])
+  @@index([inventoryItemId], map: "ProductRecipe_inventoryItemId_fkey")
 }
 
 model ProductionIngredientDeduction {
   id              Int           @id @default(autoincrement())
   productionRunId Int
-  productionRun   ProductionRun @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
+  amountDeducted  Float
   inventoryItemId Int
   inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
-  amountDeducted  Float
+  productionRun   ProductionRun @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
 
   @@unique([productionRunId, inventoryItemId])
+  @@index([inventoryItemId], map: "ProductionIngredientDeduction_inventoryItemId_fkey")
 }
 
 model AuditLog {
   id        Int      @id @default(autoincrement())
   userId    Int
-  user      User     @relation(fields: [userId], references: [id])
   userName  String
   action    String
   entityId  Int?
   timestamp DateTime @default(now())
   details   String?  @db.Text
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "AuditLog_userId_fkey")
 }
 
 model Setting {
   id    Int    @id @default(autoincrement())
   key   String @unique
   value String @db.Text
+}
+
+enum ProductionStatus {
+  PENDING
+  FINALIZED
 }
