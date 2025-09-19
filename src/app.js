@@ -22,7 +22,7 @@ import dashboardModule from './modules/dashboard/index.js';
 const app = express();
 
 // Global middleware
-const allowedOrigins = ['http://localhost:4173', 'http://localhost:8000', 'http://localhost:8080'];
+const allowedOrigins = ['https://pastry-pros-suite.vercel.app','http://localhost:4173', 'http://localhost:8000', 'http://localhost:8080'];
 const corsOptions = {
   origin: (origin, callback) => {
     if (allowedOrigins.includes(origin) || !origin) {
