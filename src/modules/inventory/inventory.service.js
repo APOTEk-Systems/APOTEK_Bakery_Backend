@@ -78,3 +78,47 @@ export const deleteInventoryItem = async (id) => {
     where: { id },
   });
 };
+
+export const getInventorySummary = async () => {
+  const lowStockRawMaterials = await prisma.inventoryItem.findMany({
+    where: {
+      type: 'raw_material',
+      currentQuantity: {
+        lt: prisma.inventoryItem.fields.minLevel,
+      },
+    }, select:{
+      id:true,
+      name:true,
+      minLevel:true
+    }
+  });
+
+  const lowStockSupplies = await prisma.inventoryItem.findMany({
+    where: {
+      type: 'supply',
+      currentQuantity: {
+        lt: prisma.inventoryItem.fields.minLevel,
+      },
+    }, select:{
+      id:true,
+      name:true,
+      minLevel:true
+    }
+  });
+
+  const outOfStockItems = await prisma.inventoryItem.count({
+    where: {
+      currentQuantity: {
+        equals: 0,
+      },
+    },
+  });
+
+  
+
+  return {
+    lowStockRawMaterials,
+    lowStockSupplies,
+    outOfStockItems,
+  };
+};

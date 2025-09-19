@@ -24,7 +24,7 @@ export const getProducts = async (req, res) => {
  * @memberof ProductController
  */
 export const createNewProduct = async (req, res) => {
-  const newProduct = await productService.createProduct(req.body, req.userId);
+  const newProduct = await productService.createProduct(req.body, req.user.id);
   res.status(201).json(newProduct);
 };
 
@@ -55,7 +55,7 @@ export const getProductById = async (req, res) => {
  */
 export const updateProduct = async (req, res) => {
   try {
-    const updatedProduct = await productService.updateProduct(req.params.id, req.body, req.userId);
+    const updatedProduct = await productService.updateProduct(req.params.id, req.body, req.user.id);
     if (updatedProduct) {
       res.json(updatedProduct);
     } else {

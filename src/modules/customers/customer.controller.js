@@ -24,7 +24,7 @@ export const getCustomers = async (req, res) => {
  * @memberof CustomerController
  */
 export const createNewCustomer = async (req, res) => {
-  const newCustomer = await customerService.createCustomer(req.body, req.userId);
+  const newCustomer = await customerService.createCustomer(req.body, req.user.id);
   res.status(201).json(newCustomer);
 };
 

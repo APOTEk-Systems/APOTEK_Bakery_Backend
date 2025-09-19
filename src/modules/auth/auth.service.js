@@ -33,7 +33,7 @@ export const loginUser = async (email, password, res) => {
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) throw new Error('Invalid credentials');
 
-  const token = jwt.sign({ userId: user.id, role: user.role, permissions: user.permissions }, process.env.JWT_SECRET, { expiresIn: '24h' });
+  const token = jwt.sign({ userId: user.id, role: user.role, permissions: user.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
 
   const refreshToken = crypto.randomBytes(32).toString('hex');
   const hashedRefreshToken = hashToken(refreshToken);
@@ -50,7 +50,7 @@ export const loginUser = async (email, password, res) => {
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite:'none',
+    sameSite:process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     expires: refreshTokenExpiry,
   });
 
@@ -73,7 +73,7 @@ export const refreshToken = async (req, res) => {
 
   if (!user) throw new Error('Invalid or expired refresh token');
 
-  const newToken = jwt.sign({ userId: user.id, role: user.role, permissions: user.permissions }, process.env.JWT_SECRET, { expiresIn: '24h' });
+  const newToken = jwt.sign({ userId: user.id, role: user.role, permissions: user.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
 
   const newRefreshToken = crypto.randomBytes(32).toString('hex');
   const hashedNewRefreshToken = hashToken(newRefreshToken);
@@ -90,7 +90,7 @@ export const refreshToken = async (req, res) => {
   res.cookie('refreshToken', newRefreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite:'none',
+    sameSite:process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     expires: newRefreshTokenExpiry,
   });
 

@@ -12,25 +12,52 @@ const prisma = new PrismaClient();
  * @returns {Promise<Array>} A promise that resolves to an array of sales.
  * @memberof SaleService
  */
-export const getAllSales = async ({ date, isCredit, status }) => {
+export const getAllSales = async ({
+  date,
+  isCredit,
+  status,
+  limit,
+  endDate,
+  startDate,
+}) => {
   const where = {};
+
   if (date) {
     where.createdAt = {
       gte: new Date(date),
       lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)),
     };
   }
+
+  if (startDate && endDate) {
+    where.createdAt = {
+      gte: new Date(startDate),
+      lt: new Date(new Date(endDate).setDate(new Date(endDate).getDate() + 1)),
+    };
+  }
+
   if (isCredit) {
     where.isCredit = isCredit === 'true';
   }
+
   if (status) {
     where.status = status;
   }
-  return await prisma.sale.findMany({
+
+  const findOptions = {
     where,
     include: { items: true, customer: true },
-  });
+    orderBy: { createdAt: 'desc' },
+  };
+
+  // Only include take if limit is provided
+  if (limit) {
+    findOptions.take = parseInt(limit);
+  }
+
+  return await prisma.sale.findMany(findOptions);
 };
+
 
 /**
  * Creates a new sale.
@@ -136,8 +163,31 @@ export const createSale = async (saleData, userId) => {
  * @memberof SaleService
  */
 export const getSaleById = async (id) => {
-  return await prisma.sale.findUnique({ where: { id } });
+  const sale = await prisma.sale.findUnique({
+    where: { id },
+    include: {
+      items: {
+        include: { product: true },
+      },
+      customer: true,
+    },
+  });
+
+  if (!sale) return null;
+
+  // Move product name into each item
+  const itemsWithProductName = sale.items.map(item => ({
+    ...item,
+    name: item.product.name,
+    product: undefined, // optional: remove the original product object
+  }));
+
+  return {
+    ...sale,
+    items: itemsWithProductName,
+  };
 };
+
 
 /**
  * Updates an existing sale.
@@ -195,4 +245,83 @@ export const deleteSale = async (id) => {
   const saleId = parseInt(id);
   await prisma.saleItem.deleteMany({ where: { saleId } });
   return await prisma.sale.delete({ where: { id: saleId } });
+};
+
+export const getSalesSummary = async () => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+  const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+
+  const firstDayOfLastMonth = new Date(currentYear, currentMonth - 1, 1);
+  const lastDayOfLastMonth = new Date(currentYear, currentMonth, 0);
+
+  const sales = await prisma.sale.findMany({
+    where: {
+      createdAt: {
+        gte: firstDayOfLastMonth,
+      },
+    },
+  });
+
+  const currentMonthSales = sales.filter(
+    (sale) => sale.createdAt >= firstDayOfMonth && sale.createdAt <= lastDayOfMonth
+  );
+
+  const lastMonthSales = sales.filter(
+    (sale) => sale.createdAt >= firstDayOfLastMonth && sale.createdAt < firstDayOfMonth
+  );
+
+  const totalSalesThisMonth = currentMonthSales.reduce(
+    (sum, sale) => sum + sale.total,
+    0
+  );
+
+  const totalSalesLastMonth = lastMonthSales.reduce(
+    (sum, sale) => sum + sale.total,
+    0
+  );
+
+  const daysInMonth = lastDayOfMonth.getDate();
+  const averageDailySales = totalSalesThisMonth / daysInMonth;
+
+  // Weekly Sales Aggregation (last 4 weeks)
+  const weeklySalesList = [];
+  for (let i = 0; i < 4; i++) {
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay() - (7 * i));
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const salesInWeek = await prisma.sale.findMany({
+      where: {
+        createdAt: {
+          gte: startOfWeek,
+          lte: endOfWeek,
+        },
+      },
+    });
+
+    const totalWeeklySales = salesInWeek.reduce((sum, sale) => sum + sale.total, 0);
+
+    weeklySalesList.unshift({
+      weekStart: startOfWeek.toISOString().split('T')[0],
+      total: totalWeeklySales,
+    });
+  }
+
+  return {
+    totalSalesThisMonth,
+    averageDailySales,
+    salesGrowth: {
+      current: totalSalesThisMonth,
+      previous: totalSalesLastMonth,
+    },
+    weeklySalesList,
+  };
 };

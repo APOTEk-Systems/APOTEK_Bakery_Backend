@@ -3,7 +3,7 @@ import { createInventoryAdjustment, listInventoryAdjustments } from "./adjustmen
 export async function createAdjustmentHandler(req, res) {
   try {
     const { inventoryItemId, amount, reason } = req.body;
-    const createdById = req.userId;
+    const createdById = req.user.id;
 
     const result = await createInventoryAdjustment({
       inventoryItemId,

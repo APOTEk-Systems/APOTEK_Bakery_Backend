@@ -13,8 +13,8 @@ import * as saleService from './sale.service.js';
  * @memberof SaleController
  */
 export const getSales = async (req, res) => {
-  const { date, isCredit, status } = req.query;
-  const sales = await saleService.getAllSales({ date, isCredit, status });
+  const { date, isCredit, status, limit, endDate, startDate } = req.query;
+  const sales = await saleService.getAllSales({ date, isCredit, status, limit, endDate, startDate  });
   res.json(sales);
 };
 
@@ -26,7 +26,7 @@ export const getSales = async (req, res) => {
  */
 export const createNewSale = async (req, res) => {
   try {
-    const newSale = await saleService.createSale(req.body, req.userId);
+    const newSale = await saleService.createSale(req.body, req.user.id);
     res.status(201).json(newSale);
   } catch (error) {
     res.status(400).json({ message: error.message }); // Return the actual error message
@@ -107,4 +107,9 @@ export const deleteSale = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+export const getSalesSummary = async (req, res) => {
+  const summary = await saleService.getSalesSummary();
+  res.json(summary);
 };

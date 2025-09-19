@@ -25,7 +25,7 @@ export const getInventoryItems = async (req, res) => {
  * @memberof InventoryController
  */
 export const createNewInventoryItem = async (req, res) => {
-  const newInventoryItem = await inventoryService.createInventoryItem(req.body, req.userId);
+  const newInventoryItem = await inventoryService.createInventoryItem(req.body, req.user.id);
   res.status(201).json(newInventoryItem);
 };
 
@@ -56,7 +56,7 @@ export const getInventoryItemById = async (req, res) => {
  */
 export const updateInventoryItem = async (req, res) => {
   try {
-    const updatedItem = await inventoryService.updateInventoryItem(parseInt(req.params.id), req.body, req.userId);
+    const updatedItem = await inventoryService.updateInventoryItem(parseInt(req.params.id), req.body, req.user.id);
     if (updatedItem) {
       res.json(updatedItem);
     } else {
@@ -84,4 +84,9 @@ export const deleteInventoryItem = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+export const getInventorySummary = async (req, res) => {
+  const summary = await inventoryService.getInventorySummary();
+  res.json(summary);
 };

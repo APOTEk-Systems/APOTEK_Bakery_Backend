@@ -4,6 +4,7 @@ import authMiddleware, { authorize } from '../../middleware/auth.middleware.js';
 
 const router = Router();
 
+router.get('/summary', authMiddleware, authorize(['read:purchases']), purchaseController.getPurchasesSummary);
 router.get('/orders', authMiddleware, authorize(['read:purchases']), purchaseController.getPurchaseOrders);
 router.post('/orders', authMiddleware, authorize(['write:purchases']), purchaseController.createNewPurchaseOrder);
 router.get('/orders/:id', authMiddleware, authorize(['read:purchases']), purchaseController.getPurchaseOrderById);
@@ -15,5 +16,7 @@ router.post('/receiving', authMiddleware, authorize(['write:purchases']), purcha
 router.get('/receiving/:id', authMiddleware, authorize(['read:purchases']), purchaseController.getGoodsReceiptById);
 router.put('/receiving/:id', authMiddleware, authorize(['write:purchases']), purchaseController.updateGoodsReceipt);
 router.delete('/receiving/:id', authMiddleware, authorize(['delete:purchases']), purchaseController.deleteGoodsReceipt);
+
+
 
 export default router;

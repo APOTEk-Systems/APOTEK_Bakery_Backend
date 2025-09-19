@@ -76,7 +76,7 @@ export const resetPassword = async (req, res) => {
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const userId = req.userId; // Assuming userId is available from authMiddleware
+    const userId = req.user.id; // Assuming userId is available from authMiddleware
     await authService.changePassword(userId, currentPassword, newPassword);
     res.json({ message: 'Password changed successfully' });
   } catch (error) {

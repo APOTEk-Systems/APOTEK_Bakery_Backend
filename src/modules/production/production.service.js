@@ -8,11 +8,17 @@ export async function createProductionRun({
   producedById,
   notes,
 }) {
+  console.log(`Starting production run for Product ID: ${productId}, Quantity: ${quantityProduced}`);
+
+  // Step 1: Find the product recipe and the corresponding inventory items.
   const recipe = await prisma.productRecipe.findMany({
     where: { productId },
     include: { inventoryItem: true },
   });
-  if (!recipe.length) throw new Error("No recipe found for this product");
+
+  if (!recipe.length) {
+    throw new Error("No recipe found for this product.");
+  }
 
   const ingredientIds = recipe.map((r) => r.inventoryItemId);
   const inventoryItems = await prisma.inventoryItem.findMany({
@@ -24,13 +30,27 @@ export async function createProductionRun({
   let totalCost = 0;
   const deductions = [];
 
+  // Step 2: Pre-check inventory levels and calculate total cost.
   for (const ingredient of recipe) {
+    if (typeof ingredient.amountRequired !== "number") {
+      throw new Error(
+        `Invalid amountRequired for ingredient with ID ${ingredient.inventoryItemId}`
+      );
+    }
     const required = ingredient.amountRequired * quantityProduced;
     const inventoryItem = inventoryItemMap.get(ingredient.inventoryItemId);
 
-    if (!inventoryItem) throw new Error("Inventory item missing");
+    if (!inventoryItem) {
+      throw new Error(
+        `Inventory item with ID ${ingredient.inventoryItemId} not found.`
+      );
+    }
+
+    // This is the core check for insufficient raw materials.
     if (inventoryItem.currentQuantity < required) {
-      throw new Error(`Not enough ${inventoryItem.name} in stock`);
+      throw new Error(
+        `Not enough ${inventoryItem.name} in stock. Required: ${required}, Available: ${inventoryItem.currentQuantity}.`
+      );
     }
 
     totalCost += (inventoryItem.cost || 0) * required;
@@ -40,7 +60,9 @@ export async function createProductionRun({
     });
   }
 
+  // Step 3: Use a try/catch block for transactional-like behavior with rollback.
   try {
+    // Deduct ingredients from inventory.
     const updatePromises = deductions.map((d) =>
       prisma.inventoryItem.update({
         where: { id: d.inventoryItemId },
@@ -48,40 +70,48 @@ export async function createProductionRun({
       })
     );
     await Promise.all(updatePromises);
+    console.log("Ingredients successfully deducted from inventory.");
 
+    // Create the production run record.
     const run = await prisma.productionRun.create({
       data: {
         productId,
         quantityProduced,
         producedById,
         notes,
-        status: "PENDING",
+        status: "PENDING", // Initial status
         updatedById: producedById,
         cost: totalCost,
+        // The rest of the fields will be populated during finalization
       },
     });
+    console.log(`Production run ${run.id} created.`);
 
-    const deductionPromises = recipe.map((ingredient) => {
-      const required = ingredient.amountRequired * quantityProduced;
-      return prisma.productionIngredientDeduction.create({
+    // Record the ingredient deductions.
+    const deductionPromises = deductions.map((d) =>
+      prisma.productionIngredientDeduction.create({
         data: {
           productionRunId: run.id,
-          inventoryItemId: ingredient.inventoryItemId,
-          amountDeducted: required,
+          inventoryItemId: d.inventoryItemId,
+          amountDeducted: d.amount,
         },
-      });
-    });
-
+      })
+    );
     await Promise.all(deductionPromises);
+    console.log("Ingredient deductions recorded.");
 
+    // Increment the product quantity in the Product table.
     await prisma.product.update({
       where: { id: productId },
       data: { quantity: { increment: quantityProduced } },
     });
+    console.log(`Product quantity for ID ${productId} incremented by ${quantityProduced}.`);
 
+    console.log("Production run successfully completed.");
     return run;
   } catch (error) {
-    // Rollback deductions
+    console.error("An error occurred during production run. Starting rollback.");
+    // This is the rollback logic. It increments the inventory back up.
     const rollbackPromises = deductions.map((d) =>
       prisma.inventoryItem.update({
         where: { id: d.inventoryItemId },
@@ -89,6 +119,8 @@ export async function createProductionRun({
       })
     );
     await Promise.all(rollbackPromises);
+    console.log("Inventory rollback completed.");
+    // Re-throw the error to be handled by the caller.
     throw error;
   }
 }
@@ -127,7 +159,9 @@ export async function updateProductionRun(
 
     if (!inventoryItem) throw new Error("Inventory item missing");
     if (inventoryItem.currentQuantity < required) {
-      throw new Error(`Not enough ${inventoryItem.name} in stock`);
+      throw new Error(
+        `Not enough ${inventoryItem.name} in stock. Required: ${required}, Available: ${inventoryItem.currentQuantity}`
+      );
     }
 
     totalCost += (inventoryItem.cost || 0) * required;

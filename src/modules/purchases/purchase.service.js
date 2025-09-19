@@ -181,3 +181,100 @@ export const deleteGoodsReceipt = async (id) => {
   return await prisma.goodsReceipt.delete({ where: { id: parseInt(id) } });
 };
 
+export const getPurchaseSummary = async () => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+  const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+
+  const firstDayOfLastMonth = new Date(currentYear, currentMonth - 1, 1);
+  const lastDayOfLastMonth = new Date(currentYear, currentMonth, 0);
+
+  const purchaseOrders = await prisma.purchaseOrder.findMany({
+    where: {
+      createdAt: {
+        gte: firstDayOfLastMonth,
+      },
+    },
+  });
+
+  const currentMonthPurchases = purchaseOrders.filter(
+    (po) =>
+      (po.status === "approved" || po.status === "completed") &&
+      po.createdAt >= firstDayOfMonth &&
+      po.createdAt <= lastDayOfMonth
+  );
+
+  const lastMonthPurchases = purchaseOrders.filter(
+    (po) =>
+      (po.status === "approved" || po.status === "completed") &&
+      po.createdAt >= firstDayOfLastMonth &&
+      po.createdAt < firstDayOfMonth
+  );
+
+  const totalPurchasesThisMonth = currentMonthPurchases.reduce(
+    (sum, po) => sum + po.totalCost,
+    0
+  );
+
+  const totalPurchasesLastMonth = lastMonthPurchases.reduce(
+    (sum, po) => sum + po.totalCost,
+    0
+  );
+
+  const pendingPurchaseOrders = purchaseOrders.filter(
+    (po) => po.status === "pending"
+  ).length;
+
+  const purchaseGrowth =
+    totalPurchasesLastMonth > 0
+      ? (
+          ((totalPurchasesThisMonth - totalPurchasesLastMonth) / totalPurchasesLastMonth) *
+          100
+        ).toFixed(2)
+      : totalPurchasesThisMonth > 0
+      ? "100.00"
+      : "0.00";
+
+  // Weekly Purchases Aggregation (last 4 weeks)
+  const weeklyPurchasesList = [];
+  for (let i = 0; i < 4; i++) {
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay() - (7 * i));
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const purchasesInWeek = await prisma.purchaseOrder.findMany({
+      where: {
+        status: { in: ["approved", "completed"] },
+        createdAt: {
+          gte: startOfWeek,
+          lte: endOfWeek,
+        },
+      },
+    });
+
+    const totalWeeklyPurchases = purchasesInWeek.reduce(
+      (sum, po) => sum + po.totalCost,
+      0
+    );
+
+    weeklyPurchasesList.unshift({
+      weekStart: startOfWeek.toISOString().split('T')[0],
+      total: totalWeeklyPurchases,
+    });
+  }
+
+  return {
+    totalPurchasesThisMonth,
+    pendingPurchaseOrders,
+    purchaseGrowth,
+    weeklyPurchasesList,
+  };
+};
+

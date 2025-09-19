@@ -25,7 +25,7 @@ export const getPurchaseOrders = async (req, res) => {
  * @memberof PurchaseController
  */
 export const createNewPurchaseOrder = async (req, res) => {
-  const newPurchaseOrder = await purchaseService.createPurchaseOrder(req.body, req.userId);
+  const newPurchaseOrder = await purchaseService.createPurchaseOrder(req.body, req.user.id);
   res.status(201).json(newPurchaseOrder);
 };
 
@@ -48,7 +48,7 @@ export const getGoodsReceipts = async (req, res) => {
  * @memberof PurchaseController
  */
 export const createNewGoodsReceipt = async (req, res) => {
-  const newGoodsReceipt = await purchaseService.createGoodsReceipt(req.body, req.userId);
+  const newGoodsReceipt = await purchaseService.createGoodsReceipt(req.body, req.user.id);
   res.status(201).json(newGoodsReceipt);
 };
 
@@ -184,4 +184,9 @@ export const deleteGoodsReceipt = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+export const getPurchasesSummary = async (req, res) => {
+  const summary = await purchaseService.getPurchaseSummary();
+  res.json(summary);
 };

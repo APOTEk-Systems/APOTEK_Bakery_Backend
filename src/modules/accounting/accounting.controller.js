@@ -112,5 +112,5 @@ export const getFinancialReport = async (req, res) => {
  */
 export const getExpensesSummary = async (req, res) => {
   const summary = await accountingService.getExpensesSummary(req.query);
-  res.json({ data: summary });
+  res.json( summary );
 };

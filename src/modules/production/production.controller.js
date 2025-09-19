@@ -8,11 +8,12 @@ import {
 
 export async function createRunHandler(req, res) {
   try {
+    console.log(req.user.id)
     const { productId, quantity, notes } = req.body;
     const run = await createProductionRun({
       productId,
       quantityProduced: quantity,
-      producedById: req.userId,
+      producedById: req.user.id,
       notes,
     });
     res.json(run);
