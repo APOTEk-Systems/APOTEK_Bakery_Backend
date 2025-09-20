@@ -22,6 +22,7 @@ model Product {
  instructions     String             @db.Text
  prepTime         Int?
  quantity         Int                @default(0)
+ batchSize        Int                @default(1)
  status           String             @default("active")
  createdBy        User               @relation("ProductCreatedBy", fields: [createdById], references: [id])
  updatedBy        User?              @relation("ProductUpdatedBy", fields: [updatedById], references: [id])

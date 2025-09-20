@@ -4,6 +4,7 @@ import {
   updateProductionRun,
   finalizeProductionRun,
   listProductionRuns,
+  getProductionRunById,
 } from "./production.service.js";
 
 export async function createRunHandler(req, res) {
@@ -45,6 +46,15 @@ export async function listRunsHandler(req, res) {
     const { date } = req.query;
     const runs = await listProductionRuns(date);
     res.json(runs);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}
+
+export async function getRunHandler(req, res) {
+  try {
+    const run = await getProductionRunById(Number(req.params.id));
+    res.json(run);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

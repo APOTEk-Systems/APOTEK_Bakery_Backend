@@ -1651,7 +1651,88 @@ Retrieves all inventory items, optionally filtered by `type`.
 }
 ```
 
+### `GET /api/production/:id` - Get a single production run by ID
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/production/3`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "id": 3,
+  "productId": 1,
+  "quantityProduced": 20,
+  "date": "2025-09-20T17:57:27.806Z",
+  "producedById": 1,
+  "cost": 7580,
+  "notes": "Test production run",
+  "createdAt": "2025-09-20T17:57:27.806Z",
+  "updatedAt": "2025-09-20T17:57:27.806Z",
+  "updatedById": 1,
+  "finalizedAt": null,
+  "status": "PENDING",
+  "product": {
+    "id": 1,
+    "name": "Donut",
+    "description": null,
+    "price": 2500,
+    "createdAt": "2025-09-19T08:57:05.388Z",
+    "updatedAt": "2025-09-20T17:57:28.635Z",
+    "createdById": 1,
+    "updatedById": null,
+    "image": null,
+    "instructions": "[\"Mix flour, sugar, yeast, eggs, milk, butter\",\"Knead dough and let rise\",\"Shape into rings\",\"Fry in oil until golden\"]",
+    "prepTime": null,
+    "quantity": 20,
+    "batchSize": 10,
+    "status": "active"
+  },
+  "ingredientsDeducted": [
+    {
+      "name": "Butter",
+      "amountDeducted": 0.1,
+      "unit": "kg",
+      "cost": 4000
+    },
+    {
+      "name": "Flour",
+      "amountDeducted": 0.5,
+      "unit": "kg",
+      "cost": 1500
+    },
+    {
+      "name": "Sugar",
+      "amountDeducted": 0.2,
+      "unit": "kg",
+      "cost": 600
+    },
+    {
+      "name": "Yeast",
+      "amountDeducted": 0.04,
+      "unit": "g",
+      "cost": 40
+    },
+    {
+      "name": "Milk",
+      "amountDeducted": 0.2,
+      "unit": "L",
+      "cost": 640
+    },
+    {
+      "name": "Eggs",
+      "amountDeducted": 2,
+      "unit": "pcs",
+      "cost": 800
+    }
+  ]
+}
+```
+
 ---
+
 
 ## Dashboard Module
 

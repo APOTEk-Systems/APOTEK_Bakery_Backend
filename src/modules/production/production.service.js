@@ -10,7 +10,20 @@ export async function createProductionRun({
 }) {
   console.log(`Starting production run for Product ID: ${productId}, Quantity: ${quantityProduced}`);
 
-  // Step 1: Find the product recipe and the corresponding inventory items.
+  // Step 1: Fetch the product to get its batch size.
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+  });
+
+  if (!product) {
+    throw new Error("Product not found.");
+  }
+
+  if (quantityProduced % product.batchSize !== 0) {
+    throw new Error(`Quantity produced must be a multiple of the batch size (${product.batchSize}).`);
+  }
+
+  // Step 2: Find the product recipe and the corresponding inventory items.
   const recipe = await prisma.productRecipe.findMany({
     where: { productId },
     include: { inventoryItem: true },
@@ -37,7 +50,7 @@ export async function createProductionRun({
         `Invalid amountRequired for ingredient with ID ${ingredient.inventoryItemId}`
       );
     }
-    const required = ingredient.amountRequired * quantityProduced;
+    const required = (quantityProduced / product.batchSize) * ingredient.amountRequired;
     const inventoryItem = inventoryItemMap.get(ingredient.inventoryItemId);
 
     if (!inventoryItem) {
@@ -137,6 +150,10 @@ export async function updateProductionRun(
   if (!run) throw new Error("Run not found");
   if (run.status !== "PENDING") throw new Error("Run already finalized");
 
+  if (quantityProduced % run.product.batchSize !== 0) {
+    throw new Error(`Quantity produced must be a multiple of the batch size (${run.product.batchSize}).`);
+  }
+
   const quantityDifference = quantityProduced - run.quantityProduced;
 
   const recipe = await prisma.productRecipe.findMany({
@@ -154,7 +171,7 @@ export async function updateProductionRun(
   const updatePromises = [];
 
   for (const ingredient of recipe) {
-    const required = ingredient.amountRequired * quantityDifference;
+    const required = (quantityDifference / run.product.batchSize) * ingredient.amountRequired;
     const inventoryItem = inventoryItemMap.get(ingredient.inventoryItemId);
 
     if (!inventoryItem) throw new Error("Inventory item missing");
@@ -177,7 +194,7 @@ export async function updateProductionRun(
   await Promise.all(updatePromises);
 
   const deductionPromises = recipe.map((ingredient) => {
-    const required = ingredient.amountRequired * quantityProduced;
+    const required = (quantityProduced / run.product.batchSize) * ingredient.amountRequired;
     return prisma.productionIngredientDeduction.updateMany({
       where: {
         productionRunId: runId,
@@ -233,4 +250,29 @@ export async function listProductionRuns(date) {
     include: { product: true, producedBy: true, updatedBy: true },
     orderBy: { createdAt: "desc" },
   });
+}
+
+export async function getProductionRunById(runId) {
+  const run = await prisma.productionRun.findUnique({
+    where: { id: runId },
+    include: {
+      product: true,
+      ingredientsDeducted: {
+        include: {
+          inventoryItem: true,
+        },
+      },
+    },
+  });
+
+  if (run) {
+    run.ingredientsDeducted = run.ingredientsDeducted.map((d) => ({
+      name: d.inventoryItem.name,
+      amountDeducted: d.amountDeducted,
+      unit: d.inventoryItem.unit,
+      cost: d.amountDeducted * d.inventoryItem.cost,
+    }));
+  }
+
+  return run;
 }
