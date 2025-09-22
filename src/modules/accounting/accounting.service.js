@@ -141,7 +141,7 @@ export const getExpensesSummary = async (filters) => {
     ...expenses.map((e) => ({ category: e.category, amount: e.amount })),
     ...inventoryExpenses.map((i) => ({
       category: i.inventoryItem.type === "raw_material" ? "Raw Materials" : "Supplies",
-      amount: i.cost * i.quantity,
+      amount: i.price * i.quantity,
     })),
   ];
 
