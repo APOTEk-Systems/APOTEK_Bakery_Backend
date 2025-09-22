@@ -79,6 +79,51 @@ export const deleteInventoryItem = async (id) => {
   });
 };
 
+/**
+ * Deducts inventory for a production run and calculates the cost.
+ * @param {Array<{inventoryItemId: number, amountDeducted: number}>} ingredients - An array of ingredients to deduct.
+ * @returns {Promise<Array<{inventoryItemId: number, amountDeducted: number, cost: number}>>} A promise that resolves to an array of deduction details including cost.
+ * @memberof InventoryService
+ */
+export const deductInventoryForProduction = async (ingredients) => {
+  const results = [];
+
+  for (const ingredient of ingredients) {
+    const { inventoryItemId, amountDeducted } = ingredient;
+
+    const inventoryItem = await prisma.inventoryItem.findUnique({
+      where: { id: inventoryItemId },
+    });
+
+    if (!inventoryItem) {
+      throw new Error(`Inventory item with ID ${inventoryItemId} not found.`);
+    }
+
+    if (inventoryItem.currentQuantity < amountDeducted) {
+      throw new Error(`Not enough stock for inventory item ${inventoryItem.name}.`);
+    }
+
+    const costOfDeduction = inventoryItem.cost * amountDeducted;
+
+    await prisma.inventoryItem.update({
+      where: { id: inventoryItemId },
+      data: {
+        currentQuantity: {
+          decrement: amountDeducted,
+        },
+      },
+    });
+
+    results.push({
+      inventoryItemId,
+      amountDeducted,
+      cost: costOfDeduction,
+    });
+  }
+
+  return results;
+};
+
 export const getInventorySummary = async () => {
   const lowStockRawMaterials = await prisma.inventoryItem.findMany({
     where: {

@@ -309,6 +309,7 @@ model ProductionIngredientDeduction {
  productionRunId   Int
  amountDeducted    Float
  inventoryItemId   Int
+ cost              Float?
  inventoryItem     InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
  productionRun     ProductionRun @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
 

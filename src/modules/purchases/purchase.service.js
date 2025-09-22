@@ -68,28 +68,74 @@ export const createGoodsReceipt = async (goodsReceiptData, userId) => {
   const { purchaseOrderId, items, ...rest } = goodsReceiptData;
 
   return await prisma.$transaction(async (tx) => {
-    let totalReceivedQuantity = 0;
-    for (const item of items) {
-      totalReceivedQuantity += item.receivedQuantity;
+    // 1. Fetch the original Purchase Order and its items to get the correct prices.
+    const purchaseOrder = await tx.purchaseOrder.findUnique({
+      where: { id: purchaseOrderId },
+      include: { items: true },
+    });
+
+    if (!purchaseOrder) {
+      throw new Error("Purchase Order not found.");
     }
 
-    // 1. Create the GoodsReceipt
+    const poItemMap = new Map(purchaseOrder.items.map(item => [item.inventoryItemId, item]));
+
+    // 2. Create the GoodsReceipt record with a 'completed' status.
+    const totalReceivedQuantity = items.reduce((sum, item) => sum + item.receivedQuantity, 0);
     const goodsReceipt = await tx.goodsReceipt.create({
       data: {
         ...rest,
         purchaseOrder: { connect: { id: purchaseOrderId } },
         createdBy: { connect: { id: userId } },
         receivedQuantity: totalReceivedQuantity,
+        status: 'completed', // Set status to completed
       },
     });
 
-    // 2. Update inventory for each item in the receipt
-    for (const item of items) {
+    // 3. Process each received item for inventory update.
+    for (const receivedItem of items) {
+      const inventoryItem = await tx.inventoryItem.findUnique({
+        where: { id: receivedItem.inventoryItemId },
+      });
+
+      if (!inventoryItem) {
+        throw new Error(`Inventory item with ID ${receivedItem.inventoryItemId} not found.`);
+      }
+
+      const poItem = poItemMap.get(receivedItem.inventoryItemId);
+      if (!poItem) {
+        throw new Error(`Item with ID ${receivedItem.inventoryItemId} not found in the original Purchase Order.`);
+      }
+
+      let quantityToAdd = receivedItem.receivedQuantity;
+      let newCost = poItem.price;
+
+      // Apply conversions for specific units
+      if (inventoryItem.unit === 'kg' || inventoryItem.unit === 'l') {
+        quantityToAdd *= 1000;
+        newCost /= 1000;
+      }
+
+      const updateData = {
+        currentQuantity: { increment: quantityToAdd },
+      };
+
+      // Check if the cost needs to be updated
+      if (inventoryItem.cost !== newCost) {
+        updateData.cost = newCost;
+      }
+
       await tx.inventoryItem.update({
-        where: { id: item.inventoryItemId },
-        data: { currentQuantity: { increment: item.receivedQuantity } },
+        where: { id: receivedItem.inventoryItemId },
+        data: updateData,
       });
     }
+
+    // 4. Update the Purchase Order status to 'completed'.
+    await tx.purchaseOrder.update({
+      where: { id: purchaseOrderId },
+      data: { status: 'completed' },
+    });
 
     return goodsReceipt;
   }, {

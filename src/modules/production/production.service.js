@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { deductInventoryForProduction } from "../inventory/inventory.service.js";
 const prisma = new PrismaClient();
 
 // Create a production run
@@ -10,9 +11,9 @@ export async function createProductionRun({
 }) {
   console.log(`Starting production run for Product ID: ${productId}, Quantity: ${quantityProduced}`);
 
-  // Step 1: Fetch the product to get its batch size.
   const product = await prisma.product.findUnique({
     where: { id: productId },
+    include: { productRecipes: true },
   });
 
   if (!product) {
@@ -23,119 +24,52 @@ export async function createProductionRun({
     throw new Error(`Quantity produced must be a multiple of the batch size (${product.batchSize}).`);
   }
 
-  // Step 2: Find the product recipe and the corresponding inventory items.
-  const recipe = await prisma.productRecipe.findMany({
-    where: { productId },
-    include: { inventoryItem: true },
-  });
-
-  if (!recipe.length) {
+  if (!product.productRecipes.length) {
     throw new Error("No recipe found for this product.");
   }
 
-  const ingredientIds = recipe.map((r) => r.inventoryItemId);
-  const inventoryItems = await prisma.inventoryItem.findMany({
-    where: { id: { in: ingredientIds } },
-  });
+  const ingredientsToDeduct = product.productRecipes.map(recipe => ({
+    inventoryItemId: recipe.inventoryItemId,
+    amountDeducted: (quantityProduced / product.batchSize) * recipe.amountRequired,
+  }));
 
-  const inventoryItemMap = new Map(inventoryItems.map((item) => [item.id, item]));
+  // Step 1: Deduct inventory and get the cost details from the inventory service
+  const deductionResults = await deductInventoryForProduction(ingredientsToDeduct);
+  console.log("Ingredients successfully deducted from inventory.");
 
-  let totalCost = 0;
-  const deductions = [];
+  // Step 2: Calculate total cost from the results of the deduction
+  const totalCost = deductionResults.reduce((acc, result) => acc + result.cost, 0);
 
-  // Step 2: Pre-check inventory levels and calculate total cost.
-  for (const ingredient of recipe) {
-    if (typeof ingredient.amountRequired !== "number") {
-      throw new Error(
-        `Invalid amountRequired for ingredient with ID ${ingredient.inventoryItemId}`
-      );
-    }
-    const required = (quantityProduced / product.batchSize) * ingredient.amountRequired;
-    const inventoryItem = inventoryItemMap.get(ingredient.inventoryItemId);
-
-    if (!inventoryItem) {
-      throw new Error(
-        `Inventory item with ID ${ingredient.inventoryItemId} not found.`
-      );
-    }
-
-    // This is the core check for insufficient raw materials.
-    if (inventoryItem.currentQuantity < required) {
-      throw new Error(
-        `Not enough ${inventoryItem.name} in stock. Required: ${required}, Available: ${inventoryItem.currentQuantity}.`
-      );
-    }
-
-    totalCost += (inventoryItem.cost || 0) * required;
-    deductions.push({
-      inventoryItemId: ingredient.inventoryItemId,
-      amount: required,
-    });
-  }
-
-  // Step 3: Use a try/catch block for transactional-like behavior with rollback.
-  try {
-    // Deduct ingredients from inventory.
-    const updatePromises = deductions.map((d) =>
-      prisma.inventoryItem.update({
-        where: { id: d.inventoryItemId },
-        data: { currentQuantity: { decrement: d.amount } },
-      })
-    );
-    await Promise.all(updatePromises);
-    console.log("Ingredients successfully deducted from inventory.");
-
-    // Create the production run record.
-    const run = await prisma.productionRun.create({
-      data: {
-        productId,
-        quantityProduced,
-        producedById,
-        notes,
-        status: "PENDING", // Initial status
-        updatedById: producedById,
-        cost: totalCost,
-        // The rest of the fields will be populated during finalization
+  // Step 3: Create the production run and the ingredient deduction records
+  const run = await prisma.productionRun.create({
+    data: {
+      productId,
+      quantityProduced,
+      producedById,
+      notes,
+      status: "PENDING",
+      updatedById: producedById,
+      cost: totalCost,
+      ingredientsDeducted: {
+        create: deductionResults.map(result => ({
+          inventoryItemId: result.inventoryItemId,
+          amountDeducted: result.amountDeducted,
+          cost: result.cost, // <-- This is the new field being populated
+        })),
       },
-    });
-    console.log(`Production run ${run.id} created.`);
+    },
+  });
+  console.log(`Production run ${run.id} created.`);
 
-    // Record the ingredient deductions.
-    const deductionPromises = deductions.map((d) =>
-      prisma.productionIngredientDeduction.create({
-        data: {
-          productionRunId: run.id,
-          inventoryItemId: d.inventoryItemId,
-          amountDeducted: d.amount,
-        },
-      })
-    );
-    await Promise.all(deductionPromises);
-    console.log("Ingredient deductions recorded.");
+  // Step 4: Increment the product quantity
+  await prisma.product.update({
+    where: { id: productId },
+    data: { quantity: { increment: quantityProduced } },
+  });
+  console.log(`Product quantity for ID ${productId} incremented by ${quantityProduced}.`);
 
-    // Increment the product quantity in the Product table.
-    await prisma.product.update({
-      where: { id: productId },
-      data: { quantity: { increment: quantityProduced } },
-    });
-    console.log(`Product quantity for ID ${productId} incremented by ${quantityProduced}.`);
-
-    console.log("Production run successfully completed.");
-    return run;
-  } catch (error) {
-    console.error("An error occurred during production run. Starting rollback.");
-    // This is the rollback logic. It increments the inventory back up.
-    const rollbackPromises = deductions.map((d) =>
-      prisma.inventoryItem.update({
-        where: { id: d.inventoryItemId },
-        data: { currentQuantity: { increment: d.amount } },
-      })
-    );
-    await Promise.all(rollbackPromises);
-    console.log("Inventory rollback completed.");
-    // Re-throw the error to be handled by the caller.
-    throw error;
-  }
+  console.log("Production run successfully completed.");
+  return run;
 }
 
 // Update a production run
