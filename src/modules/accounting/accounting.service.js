@@ -355,7 +355,7 @@ export const getAccountingSummary = async () => {
     include: { inventoryItem: true },
   });
   const totalInventoryExpenseCurrentMonth = purchaseItemsCurrentMonth.reduce(
-    (sum, item) => sum + item.inventoryItem.cost * item.quantity,
+    (sum, item) => sum + item.price * item.quantity,
     0
   );
 
@@ -369,7 +369,7 @@ export const getAccountingSummary = async () => {
     include: { inventoryItem: true },
   });
   const totalInventoryExpenseLastMonth = purchaseItemsLastMonth.reduce(
-    (sum, item) => sum + item.inventoryItem.cost * item.quantity,
+    (sum, item) => sum + item.price * item.quantity,
     0
   );
 
