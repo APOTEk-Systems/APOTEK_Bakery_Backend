@@ -137,6 +137,8 @@ model Supplier {
  id               Int             @id @default(autoincrement())
  name             String          @unique
  contactInfo      String?
+ email            String?
+ address          String?
  createdAt        DateTime        @default(now())
  updatedAt        DateTime        @updatedAt
  purchaseOrders   PurchaseOrder[]
