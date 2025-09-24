@@ -23,6 +23,10 @@ export const getSettings = async (req, res) => {
  * @memberof SettingsController
  */
 export const updateSettings = async (req, res) => {
-  const updatedSettings = await settingsService.updateSettings(req.body);
+  const { key, ...updateData } = req.body; // Extract key from body, rest is updateData
+  if (!key) {
+    return res.status(400).json({ message: "Setting key is required." });
+  }
+  const updatedSettings = await settingsService.updateSettings(key, updateData);
   res.json({ success: true, data: updatedSettings });
 };

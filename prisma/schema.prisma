@@ -336,9 +336,9 @@ model AuditLog {
 }
 
 
-model Setting {
- id    Int     @id @default(autoincrement())
- key   String  @unique
- value String  @db.Text
+model Settings {
+  id    Int     @id @default(autoincrement())
+  key   String  @unique
+  data  Json
 }
 

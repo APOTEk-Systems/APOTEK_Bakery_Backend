@@ -12,32 +12,32 @@ const prisma = new PrismaClient();
  * @memberof SettingsService
  */
 export const getAllSettings = async () => {
-  // Settings are typically stored as key-value pairs. We'll fetch all and return as a single object.
-  const settings = await prisma.setting.findMany();
+  const settings = await prisma.settings.findMany();
   return settings.reduce((acc, setting) => {
-    acc[setting.key] = setting.value;
+    acc[setting.key] = setting.data;
     return acc;
   }, {});
 };
 
 /**
- * Updates application settings.
- * @param {object} updateData - An object containing key-value pairs of settings to update.
- * @returns {Promise<object>} A promise that resolves to the updated settings.
+ * Updates application settings for a specific key.
+ * @param {string} key - The key of the setting to update (e.g., "information", "notifications").
+ * @param {object} updateData - An object containing the JSON data for the specified key.
+ * @returns {Promise<object>} A promise that resolves to the updated settings data for the key.
  * @memberof SettingsService
  */
-export const updateSettings = async (updateData) => {
-  const updatedSettings = {};
-  for (const key in updateData) {
-    if (Object.hasOwnProperty.call(updateData, key)) {
-      const value = updateData[key];
-      await prisma.setting.upsert({
-        where: { key: key },
-        update: { value: String(value) }, // Store all values as strings
-        create: { key: key, value: String(value) },
-      });
-      updatedSettings[key] = value;
-    }
-  }
-  return updatedSettings;
+export const updateSettings = async (key, updateData) => {
+  const existingSetting = await prisma.settings.findUnique({
+    where: { key: key },
+  });
+
+  const newData = { ...(existingSetting?.data || {}), ...updateData };
+
+  const updatedSetting = await prisma.settings.upsert({
+    where: { key: key },
+    update: { data: newData },
+    create: { key: key, data: newData },
+  });
+
+  return updatedSetting.data;
 };
