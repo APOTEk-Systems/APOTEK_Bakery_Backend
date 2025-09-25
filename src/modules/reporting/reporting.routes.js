@@ -10,5 +10,6 @@ router.get('/customers', authMiddleware, authorize(['read:reports']), reportingC
 router.get('/financial', authMiddleware, authorize(['read:reports']), reportingController.getFinancialReport);
 router.get('/production', authMiddleware, authorize(['read:reports']), reportingController.getProductionReport);
 router.get('/audit', authMiddleware, authorize(['read:reports']), reportingController.getAuditReport);
+router.get('/purchases', authMiddleware, authorize(['read:reports']), reportingController.getPurchasesReport);
 
 export default router;

@@ -1,6 +1,23 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
+const applyDateRangeFilter = (params) => {
+  const { startDate, endDate } = params;
+  let dateFilter = {};
+
+  if (startDate || endDate) {
+    dateFilter.createdAt = {};
+    if (startDate) {
+      dateFilter.createdAt.gte = new Date(startDate);
+    }
+    if (endDate) {
+     dateFilter.createdAt.lte = new Date(new Date(endDate).setHours(23, 59, 59, 999));
+    }
+  }
+
+  return dateFilter;
+};
+
 /**
  * @namespace ReportingService
  * @description Handles all reporting-related business logic.
@@ -13,19 +30,22 @@ const prisma = new PrismaClient();
  * @memberof ReportingService
  */
 export const generateSalesReport = async (params) => {
-  // Basic implementation: total sales
+  const dateFilter = applyDateRangeFilter(params);
+
   const sales = await prisma.sale.findMany({
-    include: { items: true, customer: true },
+    where: dateFilter,
+    include: { customer: true },
   });
 
   const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
 
-  // More complex logic would involve filtering by date, aggregating by product/customer, etc.
+  const creditCustomers = await prisma.customer.findMany({ where: { isCredit: true } });
+  const creditOutstanding = creditCustomers.reduce((sum, customer) => sum + (customer.currentCredit || 0), 0);
+
   return {
+    sales,
     totalSales,
-    byProduct: [],
-    byCustomer: [],
-    creditOutstanding: 0,
+    creditOutstanding,
   };
 };
 
@@ -36,7 +56,9 @@ export const generateSalesReport = async (params) => {
  * @memberof ReportingService
  */
 export const generateInventoryReport = async (params) => {
-  const inventoryItems = await prisma.inventoryItem.findMany();
+  const dateFilter = applyDateRangeFilter(params);
+
+  const inventoryItems = await prisma.inventoryItem.findMany({ where: dateFilter });
 
   const lowQuantity = inventoryItems.filter(item => item.currentQuantity <= item.minLevel);
   const totalValue = params.includeValue ? inventoryItems.reduce((sum, item) => sum + (item.currentQuantity * item.cost), 0) : 0;
@@ -56,7 +78,10 @@ export const generateInventoryReport = async (params) => {
  * @memberof ReportingService
  */
 export const generateCustomerReport = async (params) => {
+  const dateFilter = applyDateRangeFilter(params);
+
   const customers = await prisma.customer.findMany({
+    where: dateFilter,
     include: { sales: true },
   });
 
@@ -77,9 +102,11 @@ export const generateCustomerReport = async (params) => {
  * @memberof ReportingService
  */
 export const generateFinancialReport = async (params) => {
+  const dateFilter = applyDateRangeFilter(params);
+
   // This would typically aggregate data from Sales, Expenses, etc.
-  const totalSales = (await prisma.sale.aggregate({ _sum: { total: true } }))._sum.total || 0;
-  const totalExpenses = (await prisma.expense.aggregate({ _sum: { amount: true } }))._sum.amount || 0;
+  const totalSales = (await prisma.sale.aggregate({ where: dateFilter, _sum: { total: true } }))._sum.total || 0;
+  const totalExpenses = (await prisma.expense.aggregate({ where: { createdAt: dateFilter.createdAt }, _sum: { amount: true } }))._sum.amount || 0;
 
   return {
     revenue: totalSales,
@@ -96,16 +123,25 @@ export const generateFinancialReport = async (params) => {
  * @memberof ReportingService
  */
 export const generateProductionReport = async (params) => {
-  const productionRuns = await prisma.productionRun.findMany();
+  const dateFilter = applyDateRangeFilter(params);
+
+  const productionRuns = await prisma.productionRun.findMany({
+    where: dateFilter,
+    include: { product: true },
+  });
 
   const totalProduced = productionRuns.reduce((sum, run) => sum + run.quantityProduced, 0);
   const totalCost = productionRuns.reduce((sum, run) => sum + run.cost, 0);
 
+ const production = productionRuns.map((p) => ({
+  ...p,
+  product: p.product.name, // flatten product to just the name
+}));
+
   return {
     totalProduced,
-    byProduct: [],
+    production,
     totalCost,
-    efficiency: 0, // Placeholder
   };
 };
 
@@ -116,9 +152,51 @@ export const generateProductionReport = async (params) => {
  * @memberof ReportingService
  */
 export const generateAuditReport = async (params) => {
-  // This would require an AuditLog model and corresponding data.
+  const dateFilter = applyDateRangeFilter(params);
+
+  if (dateFilter.createdAt) {
+    dateFilter.timestamp = dateFilter.createdAt;
+    delete dateFilter.createdAt;
+  }
+
+  const auditLogs = await prisma.auditLog.findMany({ where: dateFilter });
+
   return {
-    data: [],
-    total: 0,
+    data: auditLogs,
+    total: auditLogs.length,
+  };
+};
+
+/**
+ * Generates a purchases report.
+ * @param {object} params - Parameters for the report (e.g., period, startDate, endDate).
+ * @returns {Promise<object>} A promise that resolves to the purchases report data.
+ * @memberof ReportingService
+ */
+export const generatePurchasesReport = async (params) => {
+  const dateFilter = applyDateRangeFilter(params);
+
+  const purchaseOrders = await prisma.purchaseOrder.findMany({
+    where: dateFilter,
+    include: {supplier: true },
+  });
+
+  const totalPurchases = purchaseOrders.reduce((sum, po) => sum + po.totalCost, 0);
+
+  // const bySupplier = purchaseOrders.reduce((acc, po) => {
+  //   const supplierName = po.supplier.name;
+  //   if (!acc[supplierName]) {
+  //     acc[supplierName] = { totalPurchases: 0 };
+  //   }
+  //   acc[supplierName].totalPurchases += po.totalCost;
+  //   return acc;
+  // }, {});
+
+
+  return {
+    purchaseOrders,
+    totalPurchases,
+    //bySupplier,
+   // byItem,
   };
 };

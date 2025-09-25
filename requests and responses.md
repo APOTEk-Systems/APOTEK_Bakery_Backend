@@ -136,3 +136,199 @@
   }
 }
 ```
+
+## Reporting Module
+
+### `GET /api/reports/sales` - Get sales report
+
+**Description:** This endpoint retrieves a report of all sales. It can be filtered by a date range.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/reports/sales?startDate=2025-09-01&endDate=2025-09-30`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "data": {
+    "sales": [
+      {
+        "id": 1,
+        "customerId": null,
+        "soldById": 1,
+        "isCredit": false,
+        "creditDueDate": null,
+        "total": 35000,
+        "status": "completed",
+        "createdAt": "2025-09-25T15:00:00.000Z",
+        "updatedAt": "2025-09-25T15:00:00.000Z",
+        "items": [
+          {
+            "id": 1,
+            "saleId": 1,
+            "productId": 1,
+            "quantity": 10,
+            "price": 500,
+            "notes": null,
+            "product": {
+              "id": 1,
+              "name": "Maandazi",
+              "description": null,
+              "price": 500,
+              "createdAt": "2025-09-25T15:00:00.000Z",
+              "updatedAt": "2025-09-25T15:00:00.000Z",
+              "createdById": 1,
+              "updatedById": null,
+              "image": null,
+              "instructions": "",
+              "prepTime": null,
+              "quantity": 0,
+              "batchSize": 1,
+              "status": "active"
+            }
+          },
+          {
+            "id": 2,
+            "saleId": 1,
+            "productId": 2,
+            "quantity": 20,
+            "price": 1500,
+            "notes": null,
+            "product": {
+              "id": 2,
+              "name": "white bread",
+              "description": null,
+              "price": 1500,
+              "createdAt": "2025-09-25T15:00:00.000Z",
+              "updatedAt": "2025-09-25T15:00:00.000Z",
+              "createdById": 1,
+              "updatedById": null,
+              "image": null,
+              "instructions": "",
+              "prepTime": null,
+              "quantity": 0,
+              "batchSize": 1,
+              "status": "active"
+            }
+          }
+        ],
+        "customer": null
+      }
+    ],
+    "totalSales": 35000,
+    "creditOutstanding": 0
+  }
+}
+```
+
+### `GET /api/reports/purchases` - Get purchases report
+
+**Description:** This endpoint retrieves a report of all purchases. It can be filtered by a date range.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/reports/purchases?startDate=2025-09-01&endDate=2025-09-30`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "data": {
+    "totalPurchases": 1295000,
+    "bySupplier": {
+      "mduma": {
+        "totalPurchases": 175000
+      },
+      "machange": {
+        "totalPurchases": 1120000
+      }
+    },
+    "byItem": {
+      "Vanilla": {
+        "totalCost": 100000,
+        "totalQuantity": 10
+      },
+      "Yeast": {
+        "totalCost": 75000,
+        "totalQuantity": 15
+      },
+      "Baking Powder": {
+        "totalCost": 10000,
+        "totalQuantity": 5
+      },
+      "Paper Bags": {
+        "totalCost": 30000,
+        "totalQuantity": 30
+      },
+      "Chocolate": {
+        "totalCost": 1000000,
+        "totalQuantity": 40
+      },
+      "Oven Gloves": {
+        "totalCost": 50000,
+        "totalQuantity": 10
+      },
+      "Flour": {
+        "totalCost": 30000,
+        "totalQuantity": 10
+      }
+    }
+  }
+}
+```
+
+### `GET /api/reports/inventory` - Get inventory report
+
+**Description:** This endpoint retrieves a report of all inventory. It can be filtered by a date range.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/reports/inventory?startDate=2025-09-01&endDate=2025-09-30`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "data": {
+    "totalItems": 17,
+    "lowQuantity": [],
+    "totalValue": 0,
+    "byCategory": {}
+  }
+}
+```
+
+### `GET /api/reports/production` - Get production report
+
+**Description:** This endpoint retrieves a report of all production. It can be filtered by a date range.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/reports/production?startDate=2025-09-01&endDate=2025-09-30`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "data": {
+    "totalProduced": 148,
+    "byProduct": {
+      "Maandazi": {
+        "totalProduced": 100,
+        "totalCost": 30000
+      },
+      "white bread": {
+        "totalProduced": 48,
+        "totalCost": 24715
+      }
+    },
+    "totalCost": 54715,
+    "efficiency": 0
+  }
+}
+```

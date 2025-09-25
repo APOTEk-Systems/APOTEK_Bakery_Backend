@@ -70,3 +70,14 @@ export const getAuditReport = async (req, res) => {
   const report = await reportingService.generateAuditReport(req.query);
   res.json({ data: report });
 };
+
+/**
+ * Responds with a purchases report.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @memberof ReportingController
+ */
+export const getPurchasesReport = async (req, res) => {
+  const report = await reportingService.generatePurchasesReport(req.query);
+  res.json({ data: report });
+};
