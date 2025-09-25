@@ -68,7 +68,7 @@ export const createGoodsReceipt = async (goodsReceiptData, userId) => {
   const { purchaseOrderId, items, ...rest } = goodsReceiptData;
 
   return await prisma.$transaction(async (tx) => {
-    // 1. Fetch the original Purchase Order and its items to get the correct prices.
+    // 1. Fetch the original Purchase Order and its items
     const purchaseOrder = await tx.purchaseOrder.findUnique({
       where: { id: purchaseOrderId },
       include: { items: true },
@@ -78,41 +78,54 @@ export const createGoodsReceipt = async (goodsReceiptData, userId) => {
       throw new Error("Purchase Order not found.");
     }
 
-    const poItemMap = new Map(purchaseOrder.items.map(item => [item.inventoryItemId, item]));
+    const poItemMap = new Map(
+      purchaseOrder.items.map((item) => [item.inventoryItemId, item])
+    );
 
-    // 2. Create the GoodsReceipt record with a 'completed' status.
-    const totalReceivedQuantity = items.reduce((sum, item) => sum + item.receivedQuantity, 0);
+    // 2. Create the GoodsReceipt record
+    const totalReceivedQuantity = items.reduce(
+      (sum, item) => sum + item.receivedQuantity,
+      0
+    );
+
     const goodsReceipt = await tx.goodsReceipt.create({
       data: {
         ...rest,
         purchaseOrder: { connect: { id: purchaseOrderId } },
         createdBy: { connect: { id: userId } },
         receivedQuantity: totalReceivedQuantity,
-        status: 'completed', // Set status to completed
+        status: "completed",
       },
     });
 
-    // 3. Process each received item for inventory update.
+    // 3. Process each received item
     for (const receivedItem of items) {
       const inventoryItem = await tx.inventoryItem.findUnique({
         where: { id: receivedItem.inventoryItemId },
       });
 
       if (!inventoryItem) {
-        throw new Error(`Inventory item with ID ${receivedItem.inventoryItemId} not found.`);
+        throw new Error(
+          `Inventory item with ID ${receivedItem.inventoryItemId} not found.`
+        );
       }
 
       const poItem = poItemMap.get(receivedItem.inventoryItemId);
       if (!poItem) {
-        throw new Error(`Item with ID ${receivedItem.inventoryItemId} not found in the original Purchase Order.`);
+        throw new Error(
+          `Item with ID ${receivedItem.inventoryItemId} not found in the original Purchase Order.`
+        );
       }
 
       let quantityToAdd = receivedItem.receivedQuantity;
       let newCost = poItem.price;
 
-      // Apply conversions for specific units
-      if (inventoryItem.unit === 'kg' || inventoryItem.unit === 'l') {
-        quantityToAdd *= 1000;
+      // ✅ Only convert if it's a raw material
+      if (
+        inventoryItem.type === "raw_material" &&
+        (inventoryItem.unit === "kg" || inventoryItem.unit === "l")
+      ) {
+        quantityToAdd *= 1000; // convert kg → g or l → ml
         newCost /= 1000;
       }
 
@@ -120,7 +133,7 @@ export const createGoodsReceipt = async (goodsReceiptData, userId) => {
         currentQuantity: { increment: quantityToAdd },
       };
 
-      // Check if the cost needs to be updated
+      // Update cost if different
       if (inventoryItem.cost !== newCost) {
         updateData.cost = newCost;
       }
@@ -131,18 +144,19 @@ export const createGoodsReceipt = async (goodsReceiptData, userId) => {
       });
     }
 
-    // 4. Update the Purchase Order status to 'completed'.
+    // 4. Mark PO as completed
     await tx.purchaseOrder.update({
       where: { id: purchaseOrderId },
-      data: { status: 'completed' },
+      data: { status: "completed" },
     });
 
     return goodsReceipt;
   }, {
-    maxWait: 5000, // default: 2000
-    timeout: 10000, // default: 5000
+    maxWait: 5000,
+    timeout: 10000,
   });
 };
+
 
 
 /**
