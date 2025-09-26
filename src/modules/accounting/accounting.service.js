@@ -48,6 +48,13 @@ export const getExpenseById = async (id) => {
  * @memberof AccountingService
  */
 export const createExpense = async (expenseData) => {
+  if (!expenseData.notes) {
+    const category = await prisma.expenseCategory.findUnique({
+      where: { id: expenseData.expenseCategoryId },
+    });
+    const date = new Date(expenseData.date).toLocaleDateString('en-GB');
+    expenseData.notes = `${category.name} expense for ${date}`;
+  }
   return await prisma.expense.create({ data: expenseData });
 };
 
