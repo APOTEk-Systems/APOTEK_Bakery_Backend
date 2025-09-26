@@ -1,3 +1,118 @@
+## Accounting Module
+
+### `POST /api/accounting/expense-categories` - Create a new expense category
+
+**Description:** This endpoint creates a new expense category.
+
+**Request:**
+- **Method:** `POST`
+- **URL:** `http://localhost:3000/api/accounting/expense-categories`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+- **Body:**
+  ```json
+  {
+    "name": "Electricity"
+  }
+  ```
+
+**Successful Response (Status: 201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Electricity"
+  }
+}
+```
+
+### `POST /api/accounting/expenses` - Create a new expense
+
+**Description:** This endpoint creates a new expense.
+
+**Request:**
+- **Method:** `POST`
+- **URL:** `http://localhost:3000/api/accounting/expenses`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+- **Body:**
+  ```json
+  {
+    "amount": 100,
+    "date": "2025-09-25T00:00:00.000Z",
+    "notes": "Gas for the delivery truck",
+    "expenseCategoryId": 2
+  }
+  ```
+
+**Successful Response (Status: 201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 2,
+    "amount": 100,
+    "date": "2025-09-25T00:00:00.000Z",
+    "status": "pending",
+    "notes": "Gas for the delivery truck",
+    "createdAt": "2025-09-26T13:49:18.116Z",
+    "updatedAt": "2025-09-26T13:49:18.116Z",
+    "createdById": 6,
+    "approvedById": null,
+    "updatedById": null,
+    "expenseCategoryId": 2
+}
+```
+
+### `GET /api/accounting/expense-categories` - Get all expense categories
+
+**Description:** This endpoint retrieves all expense categories.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/accounting/expense-categories`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "electricity"
+    },
+    {
+      "id": 2,
+      "name": "gas"
+    },
+    {
+      "id": 3,
+      "name": "water"
+    },
+    {
+      "id": 4,
+      "name": "transportation"
+    },
+    {
+      "id": 5,
+      "name": "salaries"
+    },
+    {
+      "id": 6,
+      "name": "rent"
+    },
+    {
+      "id": 7,
+      "name": "communication"
+    }
+  ]
+}
+```
+
 ## Settings Module
 
 ### `GET /api/settings` - Get all settings

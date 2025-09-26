@@ -114,3 +114,41 @@ export const getExpensesSummary = async (req, res) => {
   const summary = await accountingService.getExpensesSummary(req.query);
   res.json( summary );
 };
+
+export const addExpenseCategory = async (req, res) => {
+  const { name } = req.body;
+  const newExpenseCategory = await accountingService.addExpenseCategory({ name });
+  res.status(201).json({ success: true, data: newExpenseCategory });
+};
+
+export const getExpenseCategories = async (req, res) => {
+  const expenseCategories = await accountingService.getExpenseCategories();
+  res.json({ data: expenseCategories });
+};
+
+export const getExpenseCategoryById = async (req, res) => {
+  const expenseCategory = await accountingService.getExpenseCategoryById(req.params.id);
+  if (expenseCategory) {
+    res.json({ data: expenseCategory });
+  } else {
+    res.status(404).json({ error: 'Expense category not found' });
+  }
+};
+
+export const updateExpenseCategory = async (req, res) => {
+  const updatedExpenseCategory = await accountingService.updateExpenseCategory(req.params.id, req.body);
+  if (updatedExpenseCategory) {
+    res.json({ success: true, data: updatedExpenseCategory });
+  } else {
+    res.status(404).json({ error: 'Expense category not found' });
+  }
+};
+
+export const deleteExpenseCategory = async (req, res) => {
+  const deleted = await accountingService.deleteExpenseCategory(req.params.id);
+  if (deleted) {
+    res.json({ success: true });
+  } else {
+    res.status(404).json({ error: 'Expense category not found' });
+  }
+};

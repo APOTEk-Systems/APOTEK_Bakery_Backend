@@ -243,27 +243,35 @@ model InventoryAdjustment {
 }
 
 
+model ExpenseCategory {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+  expenses Expense[]
+}
+
 model Expense {
- id              Int       @id @default(autoincrement())
- amount          Float
- category        String
- date            DateTime
- status          String    @default("pending")
- notes           String?
- createdAt       DateTime  @default(now())
- updatedAt       DateTime  @updatedAt
- createdById     Int
- approvedById    Int?
- updatedById     Int?
- approvedBy      User?     @relation("ExpenseApprovedBy", fields: [approvedById], references: [id])
- createdBy       User      @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
- updatedBy       User?     @relation("ExpenseUpdatedBy", fields: [updatedById], references: [id])
+  id              Int       @id @default(autoincrement())
+  amount          Float
+  date            DateTime
+  status          String    @default("pending")
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdById     Int
+  approvedById    Int?
+  updatedById     Int?
+  approvedBy      User?     @relation("ExpenseApprovedBy", fields: [approvedById], references: [id])
+  createdBy       User      @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+  updatedBy       User?     @relation("ExpenseUpdatedBy", fields: [updatedById], references: [id])
+  expenseCategoryId Int
+  expenseCategory   ExpenseCategory @relation(fields: [expenseCategoryId], references: [id])
 
 
- @@index([approvedById])
- @@index([createdById])
- @@index([updatedById])
- User User[] @relation("ExpenseApprover")
+  @@index([approvedById])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([expenseCategoryId])
+  User User[] @relation("ExpenseApprover")
 }
 
 

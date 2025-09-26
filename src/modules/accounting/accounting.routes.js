@@ -13,6 +13,13 @@ router.put('/expenses/:id', authMiddleware, authorize(['write:expenses']), accou
 router.put('/expenses/:id/status', authMiddleware, authorize(['write:expenses']), accountingController.updateExpenseStatus);
 router.delete('/expenses/:id', authMiddleware, authorize(['delete:expenses']), accountingController.deleteExpense);
 
+// Expense Category routes
+router.post('/expense-categories', authMiddleware, authorize(['write:expenses']), accountingController.addExpenseCategory);
+router.get('/expense-categories', authMiddleware, authorize(['read:expenses']), accountingController.getExpenseCategories);
+router.get('/expense-categories/:id', authMiddleware, authorize(['read:expenses']), accountingController.getExpenseCategoryById);
+router.put('/expense-categories/:id', authMiddleware, authorize(['write:expenses']), accountingController.updateExpenseCategory);
+router.delete('/expense-categories/:id', authMiddleware, authorize(['delete:expenses']), accountingController.deleteExpenseCategory);
+
 // Report routes
 router.get('/reports', authMiddleware, authorize(['read:reports']), accountingController.getFinancialReport);
 

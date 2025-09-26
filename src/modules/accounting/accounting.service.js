@@ -88,6 +88,56 @@ export const deleteExpense = async (id) => {
 };
 
 /**
+ * Creates a new expense category.
+ * @param {object} expenseCategoryData - The data for the new expense category.
+ * @returns {Promise<object>} A promise that resolves to the newly created expense category.
+ * @memberof AccountingService
+ */
+export const addExpenseCategory = async (expenseCategoryData) => {
+  return await prisma.expenseCategory.create({ data: expenseCategoryData });
+};
+
+/**
+ * Retrieves all expense categories from the database.
+ * @returns {Promise<Array>} A promise that resolves to an array of expense categories.
+ * @memberof AccountingService
+ */
+export const getExpenseCategories = async () => {
+  return await prisma.expenseCategory.findMany();
+};
+
+/**
+ * Retrieves a single expense category by its ID.
+ * @param {string} id - The ID of the expense category.
+ * @returns {Promise<object>} A promise that resolves to the expense category object.
+ * @memberof AccountingService
+ */
+export const getExpenseCategoryById = async (id) => {
+  return await prisma.expenseCategory.findUnique({ where: { id: parseInt(id) } });
+};
+
+/**
+ * Updates an existing expense category.
+ * @param {string} id - The ID of the expense category to update.
+ * @param {object} updateData - The data to update the expense category with.
+ * @returns {Promise<object>} A promise that resolves to the updated expense category.
+ * @memberof AccountingService
+ */
+export const updateExpenseCategory = async (id, updateData) => {
+  return await prisma.expenseCategory.update({ where: { id: parseInt(id) }, data: updateData });
+};
+
+/**
+ * Deletes an expense category.
+ * @param {string} id - The ID of the expense category to delete.
+ * @returns {Promise<object>} A promise that resolves when the expense category is deleted.
+ * @memberof AccountingService
+ */
+export const deleteExpenseCategory = async (id) => {
+  return await prisma.expenseCategory.delete({ where: { id: parseInt(id) } });
+};
+
+/**
  * Generates a summary of expenses by category and total.
  * @param {object} filters - Filters for expenses (e.g., dateFrom, dateTo).
  * @returns {Promise<object>} A promise that resolves to the expense summary data.
