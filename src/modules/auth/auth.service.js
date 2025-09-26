@@ -54,7 +54,7 @@ export const loginUser = async (email, password, res) => {
     expires: refreshTokenExpiry,
   });
 
-  return { user: { id: user.id, email: user.email, role: user.role, permissions: JSON.parse(user.permissions) }, token };
+  return { user: { id: user.id, email: user.email, name:user.name, role: user.role, permissions: JSON.parse(user.permissions) }, token };
 };
 
 export const refreshToken = async (req, res) => {
