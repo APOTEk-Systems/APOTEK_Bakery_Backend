@@ -73,7 +73,7 @@ export const refreshToken = async (req, res) => {
 
   if (!user) throw new Error('Invalid or expired refresh token');
 
-  const newToken = jwt.sign({ userId: user.id, role: user.role, permissions: user.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
+  const newToken = jwt.sign({ userId: user.id, name:user.name, role: user.role, permissions: user.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
 
   const newRefreshToken = crypto.randomBytes(32).toString('hex');
   const hashedNewRefreshToken = hashToken(newRefreshToken);
