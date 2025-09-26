@@ -13,7 +13,7 @@ import * as accountingService from './accounting.service.js';
  */
 export const getExpenses = async (req, res) => {
   const expenses = await accountingService.getExpensesList(req.query);
-  res.json(expenses); // Summary will be populated in service in a real app
+  res.json(expenses);
 };
 
 export const getAccountingSummary = async (req, res) =>{

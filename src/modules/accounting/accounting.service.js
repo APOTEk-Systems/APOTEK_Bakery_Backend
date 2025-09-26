@@ -301,80 +301,33 @@ export const getAccountingReport = async (filters) => {
 
 
 export const getExpensesList = async (filters) => {
-  const dateWhere = {};
+  const where = {};
 
- if (filters.date) {
-  const exactDate = new Date(filters.date);
-  exactDate.setHours(0, 0, 0, 0);
-  const nextDate = new Date(exactDate);
-  nextDate.setDate(exactDate.getDate() + 1);
+  if (filters.startDate && filters.endDate) {
+    where.date = {
+      gte: new Date(filters.startDate),
+      lte: new Date(filters.endDate),
+    };
+  } else if (filters.startDate) {
+    where.date = {
+      gte: new Date(filters.startDate),
+    };
+  } else if (filters.endDate) {
+    where.date = {
+      lte: new Date(filters.endDate),
+    };
+  }
 
-  dateWhere.date = {
-    gte: exactDate,
-    lt: nextDate, // strictly match this single date
-  };
-}
+  if (filters.categoryId) {
+    where.expenseCategoryId = parseInt(filters.categoryId);
+  }
 
-  const dailyBreakdownMap = new Map();
-
-  // 1. Expenses from expense table
-  const expenses = await prisma.expense.findMany({ where: dateWhere });
-  expenses.forEach((expense) => {
-    const date = expense.date.toISOString().split("T")[0]; // YYYY-MM-DD
-    const category = expense.category || "Uncategorized";
-    const key = `${date}|${category}`;
-    const currentTotal = dailyBreakdownMap.get(key) || 0;
-    dailyBreakdownMap.set(key, currentTotal + expense.amount);
-  });
-
-  // 2. Supplies & raw materials from inventory
-const inventoryExpenses = await prisma.purchaseOrderItem.findMany({
-  where: {
-    
-    inventoryItem: {
-     AND: [
-        { type: "raw_material" },
-        { type: "supplies" },
-        {updatedAt : {...dateWhere.date}}
-      ],
+  return await prisma.expense.findMany({
+    where,
+    include: {
+      expenseCategory: true,
     },
-  },
-  include: {
-    inventoryItem: true, // bring back the related inventory item
-  },
-});
-
-
-  inventoryExpenses.forEach((item) => {
-    const date = item.inventoryItem.updatedAt.toISOString().split("T")[0];
-    const category =
-      item.inventoryItem.type === "raw_material" ? "Raw Materials" : "Supplies";
-    const key = `${date}|${category}`;
-    const currentTotal = dailyBreakdownMap.get(key) || 0;
-    dailyBreakdownMap.set(
-      key,
-      currentTotal + item.inventoryItem.cost * item.quantity
-    );
   });
-
-  // 3. Format breakdown
-  const dailyBreakdown = Array.from(dailyBreakdownMap.entries())
-    .map(([key, total]) => {
-      const [date, category] = key.split("|");
-      return { category, total, date };
-    })
-    .sort(
-      (a, b) =>
-        a.date.localeCompare(b.date) || a.category.localeCompare(b.category)
-    );
-
-  // 4. Totals (optional)
-  const totalExpenses = dailyBreakdown.reduce((sum, row) => sum + row.total, 0);
-
-  return {
-    totalExpenses,
-    dailyBreakdown,
-  };
 };
 
 
