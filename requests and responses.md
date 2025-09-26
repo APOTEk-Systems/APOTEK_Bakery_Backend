@@ -44,7 +44,7 @@
     "amount": 100,
     "date": "2025-09-25T00:00:00.000Z",
     "notes": "Gas for the delivery truck",
-    "expenseCategoryId": 2
+  "expenseCategoryId": 2
   }
   ```
 

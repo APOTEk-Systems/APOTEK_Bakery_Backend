@@ -94,7 +94,7 @@ export const refreshToken = async (req, res) => {
     expires: newRefreshTokenExpiry,
   });
 
-  return { user: { id: user.id, email: user.email, role: user.role, permissions: JSON.parse(user.permissions) }, token: newToken };
+  return { user: { id: user.id, email: user.email, name:user.name, role: user.role, permissions: JSON.parse(user.permissions) }, token: newToken };
 };
 
 export const resetPassword = async (email, newPassword) => {
