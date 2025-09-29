@@ -61,13 +61,11 @@ export const generateInventoryReport = async (params) => {
   const inventoryItems = await prisma.inventoryItem.findMany({ where: dateFilter });
 
   const lowQuantity = inventoryItems.filter(item => item.currentQuantity <= item.minLevel);
-  const totalValue = params.includeValue ? inventoryItems.reduce((sum, item) => sum + (item.currentQuantity * item.cost), 0) : 0;
+ // const totalValue = params.includeValue ? inventoryItems.reduce((sum, item) => sum + (item.currentQuantity * item.cost), 0) : 0;
 
   return {
-    totalItems: inventoryItems.length,
+    inventoryItems,
     lowQuantity: lowQuantity.map(item => ({ id: item.id, name: item.name, currentQuantity: item.currentQuantity, minLevel: item.minLevel })),
-    totalValue,
-    byCategory: {},
   };
 };
 
@@ -85,15 +83,23 @@ export const generateCustomerReport = async (params) => {
     include: { sales: true },
   });
 
-  // Basic implementation: total loyalty points
-  const loyaltySummary = customers.reduce((sum, customer) => sum + (customer.loyaltyPoints || 0), 0);
+  return customers.map((customer) => {
+    const totalSales = customer.sales.length;
+    const totalSpent = customer.sales.reduce((sum, sale) => sum + sale.total, 0);
+    const avgSpending = totalSales > 0 ? totalSpent / totalSales : 0;
 
-  return {
-    topCustomers: [],
-    creditRisks: [],
-    loyaltySummary: { totalPoints: loyaltySummary },
-  };
+    return {
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      // keep other customer fields if needed
+      totalSales,
+      totalSpent,
+      avgSpending,
+    };
+  });
 };
+
 
 /**
  * Generates a financial report.
@@ -167,6 +173,28 @@ export const generateAuditReport = async (params) => {
   };
 };
 
+export const generatePurchasesBySupplierReport = async (params) => {
+  const dateFilter = applyDateRangeFilter(params);
+
+  const purchaseOrders = await prisma.purchaseOrder.findMany({
+    where: dateFilter,
+    include: { supplier: true },
+  });
+
+  const bySupplier = purchaseOrders.reduce((acc, po) => {
+    const supplierName = po.supplier.name;
+    if (!acc[supplierName]) {
+      acc[supplierName] = { totalPurchases: 0 };
+    }
+    acc[supplierName].totalPurchases += po.totalCost;
+    return acc;
+  }, {});
+
+  return {
+    bySupplier,
+  };
+};
+
 /**
  * Generates a purchases report.
  * @param {object} params - Parameters for the report (e.g., period, startDate, endDate).
@@ -183,20 +211,179 @@ export const generatePurchasesReport = async (params) => {
 
   const totalPurchases = purchaseOrders.reduce((sum, po) => sum + po.totalCost, 0);
 
-  // const bySupplier = purchaseOrders.reduce((acc, po) => {
-  //   const supplierName = po.supplier.name;
-  //   if (!acc[supplierName]) {
-  //     acc[supplierName] = { totalPurchases: 0 };
-  //   }
-  //   acc[supplierName].totalPurchases += po.totalCost;
-  //   return acc;
-  // }, {});
-
-
   return {
     purchaseOrders,
     totalPurchases,
-    //bySupplier,
-   // byItem,
   };
 };
+/**
+ * Generates an ingredient purchase trend report.
+ * @param {object} params - Parameters for the report (e.g., startDate, endDate).
+ * @returns {Promise<object>} A promise that resolves to the ingredient purchase trend data.
+ * @memberof ReportingService
+ */
+export const generateIngredientPurchaseTrend = async (params) => {
+  const dateFilter = applyDateRangeFilter(params);
+
+  const ingredientPurchases = await prisma.purchaseOrderItem.findMany({
+    where: {
+      purchaseOrder: {
+        ...dateFilter,
+      },
+    },
+    include: {
+      inventoryItem: true,
+      purchaseOrder: true, // to get the createdAt date
+    },
+  });
+
+  return ingredientPurchases.map((purchase) => ({
+    item: purchase.inventoryItem.name,
+    quantity: purchase.quantity, // total cost for that item
+    date: purchase.purchaseOrder.createdAt.toISOString().split("T")[0],
+  }));
+};
+
+/**
+ * Generates a stock adjustment report.
+ * @param {object} params - Parameters for the report (e.g., startDate, endDate).
+ * @returns {Promise<object>} A promise that resolves to the stock adjustment report data.
+ * @memberof ReportingService
+ */
+export const generateStockAdjustmentReport = async (params) => {
+  const dateFilter = applyDateRangeFilter(params);
+
+  const stockAdjustments = await prisma.inventoryAdjustment.findMany({
+    where: dateFilter,
+    include: { inventoryItem: true, user: true },
+  });
+
+}
+/**
+ * Generates a finished goods summary report.
+ * @param {object} params - Parameters for the report (e.g., startDate, endDate).
+ * @returns {Promise<object>} A promise that resolves to the finished goods summary data.
+ * @memberof ReportingService
+ */
+export const generateFinishedGoodsSummary = async (params) => {
+  const dateFilter = applyDateRangeFilter(params);
+
+  // Get productions
+  const productionRuns = await prisma.productionRun.findMany({
+    where: dateFilter,
+    include: { product: true },
+  });
+
+  // Get sales in the same date range
+  const sales = await prisma.sale.findMany({
+    where: dateFilter,
+    include: { items: true },
+  });
+
+  // Flatten sales items with productId
+  const soldQuantities = sales.reduce((acc, sale) => {
+    for (const item of sale.items) {
+      acc[item.productId] = (acc[item.productId] || 0) + item.quantity;
+    }
+    return acc;
+  }, {} );
+
+  // Build flat array
+  return productionRuns.map((run) => {
+    const sold = soldQuantities[run.productId] || 0;
+    return {
+      item: run.product.name,
+      produced: run.quantityProduced,
+      sold,
+      remaining: run.quantityProduced - sold,
+      date: run.createdAt.toISOString().split("T")[0],
+    };
+  });
+};
+
+
+/**
+ * Generates an ingredient usage report.
+ * @param {object} params - Parameters for the report (e.g., startDate, endDate).
+ * @returns {Promise<object>} A promise that resolves to the ingredient usage report data.
+ * @memberof ReportingService
+ */
+export const generateIngredientUsageReport = async (params) => {
+  const dateFilter = applyDateRangeFilter(params);
+
+  const ingredientUsages = await prisma.productionIngredientDeduction.findMany({
+    where: {
+      productionRun: {
+        ...dateFilter,
+      },
+    },
+    include: { 
+      inventoryItem: true,
+      productionRun: true,
+    },
+  });
+
+  return ingredientUsages.map((usage) => ({
+    item: usage.inventoryItem.name,
+    amount: usage.amountDeducted,
+    unit : usage.inventoryItem.unit,
+    date: usage.productionRun.createdAt.toISOString().split("T")[0], // just YYYY-MM-DD
+  }));
+};
+
+/**
+ * Generates an outstanding payments report.
+ * @param {object} params - Parameters for the report (e.g., startDate, endDate).
+ * @returns {Promise<object>} A promise that resolves to the outstanding payments report data.
+ * @memberof ReportingService
+ */
+export const generateOutstandingPaymentsReport = async (params) => {
+  const dateFilter = applyDateRangeFilter(params);
+
+  const outstandingPurchaseOrders = await prisma.purchaseOrder.findMany({
+    where: {
+      isPaid: false,
+      ...dateFilter,
+    },
+    include: { supplier: true },
+  });
+
+  const outstandingSales = await prisma.sale.findMany({
+    where: {
+      isPaid: false,
+      ...dateFilter,
+    },
+    include: { customer: true },
+  });
+}
+
+/**
+ * Generates an expense breakdown report.
+ * @param {object} params - Parameters for the report (e.g., startDate, endDate).
+ * @returns {Promise<object>} A promise that resolves to the expense breakdown report data.
+ * @memberof ReportingService
+ */
+export const generateExpenseBreakdownReport = async (params) => {
+  const dateFilter = applyDateRangeFilter(params);
+
+  const expenses = await prisma.expense.findMany({
+    where: dateFilter,
+  });
+
+  const breakdown = expenses.reduce((acc, expense) => {
+    const category = expense.category || 'Uncategorized';
+    if (!acc[category]) {
+      acc[category] = 0;
+    }
+    acc[category] += expense.amount;
+    return acc;
+  }, {});
+
+  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+  return {
+    breakdown,
+    totalExpenses,
+  };
+};
+

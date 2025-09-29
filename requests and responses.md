@@ -447,3 +447,27 @@
   }
 }
 ```
+
+
+
+REPORTS
+1. Sales Module Reports
+•	Sales Report (by date range). done
+•	Customer Sales Report. done
+2. Purchases Module Reports
+•	Purchases Report (by date range). done
+•	Supplier-wise Purchases. done ish
+•	Ingredient Purchase Trend (flour, sugar, etc.). done
+3. Inventory Module Reports
+•	Current Stock Levels (Raw Materials, Supplies).
+•	Low Stock Alert Report.
+•	Stock Adjustment Report (with reasons).
+•	Finished Goods Summary (what was produced daily).
+4. Production Module Reports
+•	Daily Production Batches Report (by date range).
+•	Ingredient Usage Report (how much flour, sugar used in baking).
+5. Accounting Module Reports
+•	Income & Expense Report.
+•	Profit/Loss Report (monthly, yearly).
+•	Outstanding Payments (suppliers, debts).
+•	Expense Breakdown (rent, electricity, salaries).
