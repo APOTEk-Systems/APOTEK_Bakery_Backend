@@ -357,7 +357,7 @@ export const getAccountingSummary = async () => {
   // --- 2. Inventory Purchases (COGS) ---
   const purchaseItemsCurrentMonth = await prisma.purchaseOrderItem.findMany({
     where: {
-      purchaseOrder: { date: { gte: currentMonthStart } },
+      purchaseOrder: { createdAt: { gte: currentMonthStart } },
       inventoryItem: { OR: [{ type: "raw_material" }, { type: "supplies" }] },
     },
     include: { inventoryItem: true },
@@ -369,7 +369,7 @@ export const getAccountingSummary = async () => {
 
   const purchaseItemsLastMonth = await prisma.purchaseOrderItem.findMany({
     where: {
-      purchaseOrder: { date: { gte: lastMonthStart, lte: lastMonthEnd } },
+      purchaseOrder: { createdAt: { gte: lastMonthStart, lte: lastMonthEnd } },
       inventoryItem: { OR: [{ type: "raw_material" }, { type: "supplies" }] },
     },
     include: { inventoryItem: true },
