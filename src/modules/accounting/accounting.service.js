@@ -337,11 +337,11 @@ export const getAccountingSummary = async () => {
   const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
   const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0); // last day of previous month
 
-  // --- 1. Expenses from expense table ---
+  // --- 1. Operating Expenses ---
   const expensesCurrentMonth = await prisma.expense.findMany({
     where: { date: { gte: currentMonthStart } },
   });
-  const totalExpensesCurrentMonth = expensesCurrentMonth.reduce(
+  const totalOperatingExpensesCurrentMonth = expensesCurrentMonth.reduce(
     (sum, e) => sum + e.amount,
     0
   );
@@ -349,83 +349,74 @@ export const getAccountingSummary = async () => {
   const expensesLastMonth = await prisma.expense.findMany({
     where: { date: { gte: lastMonthStart, lte: lastMonthEnd } },
   });
-  const totalExpensesLastMonth = expensesLastMonth.reduce(
+  const totalOperatingExpensesLastMonth = expensesLastMonth.reduce(
     (sum, e) => sum + e.amount,
     0
   );
 
-  // --- 2. Supplies & Raw Materials from purchase orders ---
+  // --- 2. Inventory Purchases (COGS) ---
   const purchaseItemsCurrentMonth = await prisma.purchaseOrderItem.findMany({
     where: {
-      inventoryItem: {
-        OR: [{ type: "raw_material" }, { type: "supplies" }],
-        updatedAt: { gte: currentMonthStart },
-      },
+      purchaseOrder: { date: { gte: currentMonthStart } },
+      inventoryItem: { OR: [{ type: "raw_material" }, { type: "supplies" }] },
     },
     include: { inventoryItem: true },
   });
-  const totalInventoryExpenseCurrentMonth = purchaseItemsCurrentMonth.reduce(
+  const cogsCurrentMonth = purchaseItemsCurrentMonth.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
 
   const purchaseItemsLastMonth = await prisma.purchaseOrderItem.findMany({
     where: {
-      inventoryItem: {
-        OR: [{ type: "raw_material" }, { type: "supplies" }],
-        updatedAt: { gte: lastMonthStart, lte: lastMonthEnd },
-      },
+      purchaseOrder: { date: { gte: lastMonthStart, lte: lastMonthEnd } },
+      inventoryItem: { OR: [{ type: "raw_material" }, { type: "supplies" }] },
     },
     include: { inventoryItem: true },
   });
-  const totalInventoryExpenseLastMonth = purchaseItemsLastMonth.reduce(
+  const cogsLastMonth = purchaseItemsLastMonth.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
 
-  // --- 3. Monthly totals ---
-  const totalExpenses = totalExpensesCurrentMonth + totalInventoryExpenseCurrentMonth;
-  const lastMonthTotalExpenses = totalExpensesLastMonth + totalInventoryExpenseLastMonth;
-
-  // --- 4. Revenue (completed sales) ---
-  const revenueCurrentMonth = await prisma.sale.aggregate({
+  // --- 3. Revenue ---
+  const salesCurrentMonth = await prisma.sale.aggregate({
+    where: { createdAt: { gte: currentMonthStart } },
     _sum: { total: true },
-    where: { status: "completed", createdAt: { gte: currentMonthStart } },
   });
+  const totalRevenueCurrentMonth = salesCurrentMonth._sum.total || 0;
 
-  const revenueLastMonth = await prisma.sale.aggregate({
+  const salesLastMonth = await prisma.sale.aggregate({
+    where: { createdAt: { gte: lastMonthStart, lte: lastMonthEnd } },
     _sum: { total: true },
-    where: { status: "completed", createdAt: { gte: lastMonthStart, lte: lastMonthEnd } },
   });
+  const totalRevenueLastMonth = salesLastMonth._sum.total || 0;
 
-  const currentRevenue = revenueCurrentMonth._sum.total || 0;
-  const lastRevenue = revenueLastMonth._sum.total || 0;
+  // --- 4. Profit Calculations ---
+  const grossProfitCurrentMonth = totalRevenueCurrentMonth - cogsCurrentMonth;
+  const netProfitCurrentMonth = grossProfitCurrentMonth - totalOperatingExpensesCurrentMonth;
 
-  // --- 5. Net Profit & Profit Margin ---
-  const netProfit = currentRevenue - totalExpenses;
-  const lastNetProfit = lastRevenue - lastMonthTotalExpenses;
-
-  const profitMargin = currentRevenue
-    ? ((netProfit / currentRevenue) * 100).toFixed(2) + "%"
-    : "N/A";
-
-  const profitChange = lastNetProfit
-    ? (((netProfit - lastNetProfit) / Math.abs(lastNetProfit)) * 100).toFixed(2) + "%"
-    : "N/A";
+  const grossProfitLastMonth = totalRevenueLastMonth - cogsLastMonth;
+  const netProfitLastMonth = grossProfitLastMonth - totalOperatingExpensesLastMonth;
 
   return {
-    monthlyRevenue: currentRevenue,
-    monthlyExpenses: totalExpenses,
-    netProfit,
-    profitMargin,
-    comparison: {
-      lastMonthRevenue: lastRevenue,
-      lastMonthExpenses: lastMonthTotalExpenses,
-      lastMonthNetProfit: lastNetProfit,
-      netProfitChange: profitChange,
+    currentMonth: {
+      revenue: totalRevenueCurrentMonth,
+      cogs: cogsCurrentMonth,
+      operatingExpenses: totalOperatingExpensesCurrentMonth,
+      grossProfit: grossProfitCurrentMonth,
+      netProfit: netProfitCurrentMonth,
+    },
+    lastMonth: {
+      revenue: totalRevenueLastMonth,
+      cogs: cogsLastMonth,
+      operatingExpenses: totalOperatingExpensesLastMonth,
+      grossProfit: grossProfitLastMonth,
+      netProfit: netProfitLastMonth,
     },
   };
 };
+
 
 
 
