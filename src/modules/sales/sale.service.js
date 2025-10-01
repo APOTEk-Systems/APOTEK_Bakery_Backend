@@ -19,6 +19,7 @@ export const getAllSales = async ({
   limit,
   endDate,
   startDate,
+  page,
 }) => {
   const where = {};
 
@@ -44,18 +45,22 @@ export const getAllSales = async ({
     where.status = status;
   }
 
-  const findOptions = {
+  const sales = await prisma.sale.findMany({
     where,
     include: { items: true, customer: true },
     orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+
+  const total = await prisma.sale.count({ where });
+
+  return {
+    sales,
+    total,
+    totalPages: Math.ceil(total / limit),
+    currentPage: page,
   };
-
-  // Only include take if limit is provided
-  if (limit) {
-    findOptions.take = parseInt(limit);
-  }
-
-  return await prisma.sale.findMany(findOptions);
 };
 
 

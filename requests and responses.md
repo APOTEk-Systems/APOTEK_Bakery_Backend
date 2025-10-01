@@ -1,3 +1,56 @@
+## Sales Module
+
+### `GET /api/sales` - Get all sales
+
+**Description:** This endpoint retrieves a paginated list of all sales. It can be filtered by a date range, credit status, and sale status.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/sales?page=1&limit=5&startDate=2025-09-01&endDate=2025-09-30`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "sales": [
+    {
+      "id": 49,
+      "customerId": null,
+      "soldById": 2,
+      "isCredit": false,
+      "creditDueDate": null,
+      "total": 2000,
+      "status": "completed",
+      "createdAt": "2025-09-29T23:03:44.716Z",
+      "updatedAt": "2025-09-29T23:03:44.716Z",
+      "items": [
+        {
+          "id": 64,
+          "saleId": 49,
+          "productId": 1,
+          "quantity": 1,
+          "price": 500,
+          "notes": null
+        },
+        {
+          "id": 65,
+          "saleId": 49,
+          "productId": 2,
+          "quantity": 1,
+          "price": 1500,
+          "notes": null
+        }
+      ],
+      "customer": null
+    }
+  ],
+  "total": 49,
+  "totalPages": 10,
+  "currentPage": 1
+}
+```
+
 ## Accounting Module
 
 ### `POST /api/accounting/expense-categories` - Create a new expense category

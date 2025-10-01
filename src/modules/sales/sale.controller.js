@@ -13,8 +13,19 @@ import * as saleService from './sale.service.js';
  * @memberof SaleController
  */
 export const getSales = async (req, res) => {
-  const { date, isCredit, status, limit, endDate, startDate } = req.query;
-  const sales = await saleService.getAllSales({ date, isCredit, status, limit, endDate, startDate  });
+  const { date, isCredit, status, endDate, startDate } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+
+  const sales = await saleService.getAllSales({
+    date,
+    isCredit,
+    status,
+    limit,
+    endDate,
+    startDate,
+    page,
+  });
   res.json(sales);
 };
 
