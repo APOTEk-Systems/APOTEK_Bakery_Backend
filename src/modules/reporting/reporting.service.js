@@ -110,17 +110,58 @@ export const generateCustomerReport = async (params) => {
 export const generateFinancialReport = async (params) => {
   const dateFilter = applyDateRangeFilter(params);
 
-  // This would typically aggregate data from Sales, Expenses, etc.
-  const totalSales = (await prisma.sale.aggregate({ where: dateFilter, _sum: { total: true } }))._sum.total || 0;
-  const totalExpenses = (await prisma.expense.aggregate({ where: { createdAt: dateFilter.createdAt }, _sum: { amount: true } }))._sum.amount || 0;
+  // 1. Total Sales (Revenue)
+  const totalSales =
+    (
+      await prisma.sale.aggregate({
+        where: dateFilter,
+        _sum: { total: true },
+      })
+    )._sum.total || 0;
+
+  // 2. Operating Expenses (not including inventory purchases)
+  const operatingExpenses =
+    (
+      await prisma.expense.aggregate({
+        where: { createdAt: dateFilter.createdAt },
+        _sum: { amount: true },
+      })
+    )._sum.amount || 0;
+
+  // 3. Inventory Purchases = COGS
+  const purchaseItems = await prisma.purchaseOrderItem.findMany({
+    where: {
+      purchaseOrder: {
+        ...dateFilter,
+      },
+      inventoryItem: {
+        OR: [{ type: "raw_material" }, { type: "supplies" }],
+      },
+    },
+    include: { inventoryItem: true },
+  });
+
+  const costOfGoodsSold = purchaseItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+
+  // 4. Gross Profit = Sales – COGS
+  const grossProfit = totalSales - costOfGoodsSold;
+
+  // 5. Net Profit = Gross Profit – Operating Expenses
+  const netProfit = grossProfit - operatingExpenses;
 
   return {
     revenue: totalSales,
-    expenses: totalExpenses,
-    netProfit: totalSales - totalExpenses,
-    cashFlow: 0, // Placeholder
+    cogs: costOfGoodsSold,
+    operatingExpenses,
+    grossProfit,
+    netProfit,
   };
 };
+
+
 
 /**
  * Generates a production report.
@@ -366,12 +407,14 @@ export const generateOutstandingPaymentsReport = async (params) => {
 export const generateExpenseBreakdownReport = async (params) => {
   const dateFilter = applyDateRangeFilter(params);
 
+  // 1. Normal expenses
   const expenses = await prisma.expense.findMany({
     where: dateFilter,
+    include:{expenseCategory:true}
   });
 
   const breakdown = expenses.reduce((acc, expense) => {
-    const category = expense.category || 'Uncategorized';
+    const category = expense.expenseCategory.name || "Uncategorized";
     if (!acc[category]) {
       acc[category] = 0;
     }
@@ -379,11 +422,47 @@ export const generateExpenseBreakdownReport = async (params) => {
     return acc;
   }, {});
 
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  let totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+  // 2. Inventory Purchases (raw_material + supplies)
+  const purchaseItems = await prisma.purchaseOrderItem.findMany({
+    where: {
+      purchaseOrder: {
+        ...dateFilter,
+      },
+      inventoryItem: {
+        OR: [{ type: "raw_material" }, { type: "supplies" }],
+      },
+    },
+    include: { inventoryItem: true },
+  });
+
+  const inventoryBreakdown = purchaseItems.reduce(
+    (acc, item) => {
+      const category =
+        item.inventoryItem.type === "raw_material"
+          ? "Raw Material Purchases"
+          : "Supplies Purchases";
+
+      if (!acc[category]) {
+        acc[category] = 0;
+      }
+      acc[category] += item.price * item.quantity;
+      return acc;
+    },
+    {}
+  );
+
+  // merge inventory breakdown into overall breakdown
+  for (const [category, amount] of Object.entries(inventoryBreakdown)) {
+    breakdown[category] = (breakdown[category] || 0) + amount;
+    totalExpenses += amount;
+  }
 
   return {
     breakdown,
     totalExpenses,
   };
 };
+
 

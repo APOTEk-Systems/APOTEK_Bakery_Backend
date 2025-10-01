@@ -521,6 +521,5 @@ REPORTS
 •	Ingredient Usage Report (how much flour, sugar used in baking).
 5. Accounting Module Reports
 •	Income & Expense Report.
-•	Profit/Loss Report (monthly, yearly).
-•	Outstanding Payments (suppliers, debts).
+•	Profit/Loss Report
 •	Expense Breakdown (rent, electricity, salaries).
