@@ -11,14 +11,29 @@ const hashToken = (token) => {
 };
 
 export const registerUser = async (userData) => {
-  const { email, password, name, permissions = [], ...rest } = userData;
+  const { email, password, name, roleName, permissions, ...rest } = userData;
+
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser) {
+    throw new Error('User with this email already exists');
+  }
+
   const hashedPassword = await bcrypt.hash(password, 10);
+
+  const role = await prisma.userRole.upsert({
+    where: { name: roleName },
+    update: { permissions },
+    create: { name: roleName, permissions },
+  });
+
   const newUser = await prisma.user.create({
     data: {
       email,
       password: hashedPassword,
       name,
-      permissions: JSON.stringify(permissions),
+      role: {
+        connect: { id: role.id },
+      },
       ...rest,
     },
     select: { id: true, email: true },
@@ -27,13 +42,16 @@ export const registerUser = async (userData) => {
 };
 
 export const loginUser = async (email, password, res) => {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: { role: true },
+  });
   if (!user) throw new Error('Invalid credentials');
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) throw new Error('Invalid credentials');
 
-  const token = jwt.sign({ userId: user.id, role: user.role, permissions: user.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
+  const token = jwt.sign({ userId: user.id, role: user.role.name, permissions: user.role.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
 
   const refreshToken = crypto.randomBytes(32).toString('hex');
   const hashedRefreshToken = hashToken(refreshToken);
@@ -54,7 +72,7 @@ export const loginUser = async (email, password, res) => {
     expires: refreshTokenExpiry,
   });
 
-  return { user: { id: user.id, email: user.email, name:user.name, role: user.role, permissions: JSON.parse(user.permissions) }, token };
+  return { user: { id: user.id, email: user.email, name:user.name, role: user.role.name, permissions: user.role.permissions }, token };
 };
 
 export const refreshToken = async (req, res) => {
@@ -69,11 +87,12 @@ export const refreshToken = async (req, res) => {
       refreshToken: hashedOldRefreshToken,
       refreshTokenExpiresAt: { gt: now },
     },
+    include: { role: true },
   });
 
   if (!user) throw new Error('Invalid or expired refresh token');
 
-  const newToken = jwt.sign({ userId: user.id, name:user.name, role: user.role, permissions: user.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
+  const newToken = jwt.sign({ userId: user.id, name:user.name, role: user.role.name, permissions: user.role.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
 
   const newRefreshToken = crypto.randomBytes(32).toString('hex');
   const hashedNewRefreshToken = hashToken(newRefreshToken);
@@ -94,7 +113,7 @@ export const refreshToken = async (req, res) => {
     expires: newRefreshTokenExpiry,
   });
 
-  return { user: { id: user.id, email: user.email, name:user.name, role: user.role, permissions: JSON.parse(user.permissions) }, token: newToken };
+  return { user: { id: user.id, email: user.email, name:user.name, role: user.role.name, permissions: user.role.permissions }, token: newToken };
 };
 
 export const resetPassword = async (email, newPassword) => {

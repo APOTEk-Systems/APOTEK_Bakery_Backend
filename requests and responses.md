@@ -523,3 +523,370 @@ REPORTS
 •	Income & Expense Report.
 •	Profit/Loss Report
 •	Expense Breakdown (rent, electricity, salaries).
+
+## User Management
+
+### `POST /api/auth/register` - Register a new user
+
+**Description:** This endpoint registers a new user. It is recommended to create roles using the `/api/users/roles` endpoint first and then provide the `roleId` during registration.
+
+**Request:**
+- **Method:** `POST`
+- **URL:** `http://localhost:3000/api/auth/register`
+- **Headers:**
+  - `Content-Type: application/json`
+- **Body:**
+  ```json
+  {
+    "email": "admin@example.com",
+    "password": "password123",
+    "name": "Admin User",
+    "roleId": 1
+  }
+  ```
+
+**Successful Response (Status: 201 Created):**
+```json
+{
+  "id": 1,
+  "email": "admin@example.com"
+}
+```
+
+### `POST /api/auth/login` - Login a user
+
+**Description:** This endpoint authenticates a user and returns a JWT token.
+
+**Request:**
+- **Method:** `POST`
+- **URL:** `http://localhost:3000/api/auth/login`
+- **Headers:**
+  - `Content-Type: application/json`
+- **Body:**
+  ```json
+  {
+    "email": "admin@example.com",
+    "password": "password123"
+  }
+  ```
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "user": {
+    "id": 1,
+    "email": "admin@example.com",
+    "name": "Admin User",
+    "role": "admin",
+    "permissions": ["all"]
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInJvbGUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbImFsbCJdLCJpYXQiOjE3NTk0MDkxNjgsImV4cCI6MTc1OTQxMDA2OH0.mVEMO0EDE9tNgZl-x2ORypHrogYapvkc6fwNSfLUkkk"
+}
+```
+
+### `POST /api/users` - Create a new user
+
+**Description:** This endpoint creates a new user. This is intended to be used by an authenticated user with the appropriate permissions (e.g., an admin). It requires a `roleId` to assign an existing role to the user.
+
+**Request:**
+- **Method:** `POST`
+- **URL:** `http://localhost:3000/api/users`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+- **Body:**
+  ```json
+  {
+    "email": "cashier@example.com",
+    "password": "password123",
+    "name": "Cashier User",
+    "roleId": 2
+  }
+  ```
+
+**Successful Response (Status: 201 Created):**
+```json
+{
+  "id": 3,
+  "email": "cashier@example.com",
+  "name": "Cashier User",
+  "createdAt": "2025-10-02T12:47:00.364Z",
+  "updatedAt": "2025-10-02T12:47:00.364Z",
+  "password": "$2b$10$l4bwXpv/TPPAvgzOqjZX1ecmOfgsRIBB4DuEY0a2kKQN6ltF7Br..",
+  "status": "active",
+  "refreshToken": null,
+  "refreshTokenExpiresAt": null,
+  "roleId": 2,
+  "role": {
+    "id": 2,
+    "name": "cashier",
+    "description": null,
+    "permissions": ["read:sales", "write:sales"]
+  }
+}
+```
+
+### `GET /api/users` - Get all users
+
+**Description:** This endpoint retrieves a list of all users.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/users`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "email": "admin@example.com",
+    "name": "Admin User",
+    "createdAt": "2025-10-02T12:26:42.214Z",
+    "updatedAt": "2025-10-02T12:27:08.243Z",
+    "password": "$2b$10$jJ7CKakaPDRYRDVA07QJYeCPk/Znr2NtxaVfysOYLk484Za5Xlc8S",
+    "status": "active",
+    "refreshToken": "$2b$10$jJ7CKakaPDRYRDVA07QJYeCPk/Znr2NtxaVfysOYLk484Za5Xlc8S",
+    "refreshTokenExpiresAt": "2025-10-09T12:27:08.243Z",
+    "roleId": 1,
+    "role": {
+      "id": 1,
+      "name": "admin",
+      "description": null,
+      "permissions": ["all"]
+    }
+  },
+  {
+    "id": 3,
+    "email": "cashier@example.com",
+    "name": "Cashier User",
+    "createdAt": "2025-10-02T12:47:00.364Z",
+    "updatedAt": "2025-10-02T12:47:00.364Z",
+    "password": "$2b$10$l4bwXpv/TPPAvgzOqjZX1ecmOfgsRIBB4DuEY0a2kKQN6ltF7Br..",
+    "status": "active",
+    "refreshToken": null,
+    "refreshTokenExpiresAt": null,
+    "roleId": 2,
+    "role": {
+      "id": 2,
+      "name": "cashier",
+      "description": null,
+      "permissions": ["read:sales", "write:sales"]
+    }
+  }
+]
+```
+
+### `GET /api/users/{id}` - Get a single user
+
+**Description:** This endpoint retrieves a single user by their ID.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/users/3`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "id": 3,
+  "email": "cashier@example.com",
+  "name": "Cashier User",
+  "createdAt": "2025-10-02T12:47:00.364Z",
+  "updatedAt": "2025-10-02T12:47:00.364Z",
+  "password": "$2b$10$l4bwXpv/TPPAvgzOqjZX1ecmOfgsRIBB4DuEY0a2kKQN6ltF7Br..",
+  "status": "active",
+  "refreshToken": null,
+  "refreshTokenExpiresAt": null,
+  "roleId": 2,
+  "role": {
+    "id": 2,
+    "name": "cashier",
+    "description": null,
+    "permissions": ["read:sales", "write:sales"]
+  }
+}
+```
+
+### `PUT /api/users/{id}` - Update a user
+
+**Description:** This endpoint updates a user's information, including their role. To change the role, provide a `roleId`.
+
+**Request:**
+- **Method:** `PUT`
+- **URL:** `http://localhost:3000/api/users/3`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+- **Body:**
+  ```json
+  {
+    "name": "Cashier User Updated",
+    "roleId": 1
+  }
+  ```
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "id": 3,
+  "email": "cashier@example.com",
+  "name": "Cashier User Updated",
+  "createdAt": "2025-10-02T12:47:00.364Z",
+  "updatedAt": "2025-10-02T12:55:00.000Z",
+  "password": "$2b$10$l4bwXpv/TPPAvgzOqjZX1ecmOfgsRIBB4DuEY0a2kKQN6ltF7Br..",
+  "status": "active",
+  "refreshToken": null,
+  "refreshTokenExpiresAt": null,
+  "roleId": 1,
+  "role": {
+    "id": 1,
+    "name": "admin",
+    "description": null,
+    "permissions": ["all"]
+  }
+}
+```
+
+### `DELETE /api/users/{id}` - Delete a user
+
+**Description:** This endpoint deletes a user by their ID.
+
+**Request:**
+- **Method:** `DELETE`
+- **URL:** `http://localhost:3000/api/users/3`
+- **Headers:**
+  - `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "message": "User deleted successfully"
+}
+```
+
+## User Role Management
+
+### `POST /api/users/roles` - Create a new role
+
+**Description:** This endpoint creates a new user role.
+
+**Request:**
+- **Method:** `POST`
+- **URL:** `http://localhost:3000/api/users/roles`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+- **Body:**
+  ```json
+  {
+    "name": "cashier",
+    "description": "Cashier role with limited permissions",
+    "permissions": ["read:sales", "write:sales"]
+  }
+  ```
+
+**Successful Response (Status: 201 Created):**
+```json
+{
+  "id": 2,
+  "name": "cashier",
+  "description": "Cashier role with limited permissions",
+  "permissions": ["read:sales", "write:sales"]
+}
+```
+
+### `GET /api/users/roles` - Get all roles
+
+**Description:** This endpoint retrieves a list of all user roles.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/users/roles`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "name": "admin",
+    "description": null,
+    "permissions": ["all"]
+  },
+  {
+    "id": 2,
+    "name": "cashier",
+    "description": "Cashier role with limited permissions",
+    "permissions": ["read:sales", "write:sales"]
+  }
+]
+```
+
+### `GET /api/users/roles/{id}` - Get a single role
+
+**Description:** This endpoint retrieves a single user role by its ID.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/users/roles/2`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "id": 2,
+  "name": "cashier",
+  "description": "Cashier role with limited permissions",
+  "permissions": ["read:sales", "write:sales"]
+}
+```
+
+### `PUT /api/users/roles/{id}` - Update a role
+
+**Description:** This endpoint updates a user role's information.
+
+**Request:**
+- **Method:** `PUT`
+- **URL:** `http://localhost:3000/api/users/roles/2`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+- **Body:**
+  ```json
+  {
+    "name": "Cashier Updated",
+    "permissions": ["read:sales"]
+  }
+  ```
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "id": 2,
+  "name": "Cashier Updated",
+  "description": "Cashier role with limited permissions",
+  "permissions": ["read:sales"]
+}
+```
+
+### `DELETE /api/users/roles/{id}` - Delete a role
+
+**Description:** This endpoint deletes a user role by its ID.
+
+**Request:**
+- **Method:** `DELETE`
+- **URL:** `http://localhost:3000/api/users/roles/2`
+- **Headers:**
+  - `Authorization: Bearer <ADMIN_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "message": "Role deleted successfully"
+}
+```

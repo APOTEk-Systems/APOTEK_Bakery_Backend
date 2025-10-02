@@ -1,20 +1,6 @@
-
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
-
-// Helper function to parse permissions
-const parsePermissions = (user) => {
-  if (user && user.permissions && typeof user.permissions === 'string') {
-    try {
-      user.permissions = JSON.parse(user.permissions);
-    } catch (e) {
-      console.error('Error parsing permissions:', e);
-      user.permissions = []; // Default to empty array on error
-    }
-  }
-  return user;
-};
 
 /**
  * @namespace UserService
@@ -27,8 +13,10 @@ const parsePermissions = (user) => {
  * @memberof UserService
  */
 export const getAllUsers = async () => {
-  const users = await prisma.user.findMany();
-  return users.map(parsePermissions); // Apply parsing to each user
+  const users = await prisma.user.findMany({
+    include: { role: true },
+  });
+  return users;
 };
 
 /**
@@ -36,11 +24,12 @@ export const getAllUsers = async () => {
  * @param {object} userData - The data for the new user.
  * @param {string} userData.email - The email of the user.
  * @param {string} [userData.name] - The name of the user.
+ * @param {number} userData.roleId - The ID of the role to assign to the user.
  * @returns {Promise<object>} A promise that resolves to the newly created user.
  * @memberof UserService
  */
 export const createUser = async (userData) => {
-  const { email, password, ...rest } = userData;
+  const { email, password, roleId, ...rest } = userData;
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
@@ -49,12 +38,20 @@ export const createUser = async (userData) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const data = { ...rest, email, password: hashedPassword };
-  if (data.permissions) {
-    data.permissions = JSON.stringify(data.permissions);
-  }
-  const newUser = await prisma.user.create({ data });
-  return parsePermissions(newUser);
+  const data = {
+    ...rest,
+    email,
+    password: hashedPassword,
+    role: {
+      connect: { id: roleId },
+    },
+  };
+
+  const newUser = await prisma.user.create({
+    data,
+    include: { role: true },
+  });
+  return newUser;
 };
 
 /**
@@ -64,8 +61,11 @@ export const createUser = async (userData) => {
  * @memberof UserService
  */
 export const getUserById = async (id) => {
-  const user = await prisma.user.findUnique({ where: { id } });
-  return parsePermissions(user); // Apply parsing
+  const user = await prisma.user.findUnique({
+    where: { id: parseInt(id) },
+    include: { role: true },
+  });
+  return user;
 };
 
 /**
@@ -76,12 +76,21 @@ export const getUserById = async (id) => {
  * @memberof UserService
  */
 export const updateUser = async (id, userData) => {
-  const data = { ...userData };
-  if (data.permissions) {
-    data.permissions = JSON.stringify(data.permissions);
+  const { roleId, ...rest } = userData;
+  const data = { ...rest };
+
+  if (roleId) {
+    data.role = {
+      connect: { id: roleId },
+    };
   }
-  const updatedUser = await prisma.user.update({ where: { id }, data });
-  return parsePermissions(updatedUser); // Apply parsing
+
+  const updatedUser = await prisma.user.update({
+    where: { id: parseInt(id) },
+    data,
+    include: { role: true },
+  });
+  return updatedUser;
 };
 
 /**
@@ -91,5 +100,33 @@ export const updateUser = async (id, userData) => {
  * @memberof UserService
  */
 export const deleteUser = async (id) => {
-  return await prisma.user.delete({ where: { id } });
+  return await prisma.user.delete({ where: { id: parseInt(id) } });
+};
+
+/**
+ * @namespace UserRoleService
+ * @description Handles all user-role-related business logic.
+ */
+
+export const getAllRoles = async () => {
+  return await prisma.userRole.findMany();
+};
+
+export const createRole = async (roleData) => {
+  return await prisma.userRole.create({ data: roleData });
+};
+
+export const getRoleById = async (id) => {
+  return await prisma.userRole.findUnique({ where: { id: parseInt(id) } });
+};
+
+export const updateRole = async (id, roleData) => {
+  return await prisma.userRole.update({
+    where: { id: parseInt(id) },
+    data: roleData,
+  });
+};
+
+export const deleteRole = async (id) => {
+  return await prisma.userRole.delete({ where: { id: parseInt(id) } });
 };

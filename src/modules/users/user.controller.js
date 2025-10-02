@@ -1,4 +1,3 @@
-
 import * as userService from './user.service.js';
 
 /**
@@ -71,4 +70,41 @@ export const deleteUser = async (req, res) => {
     return res.status(404).json({ message: 'User not found' });
   }
   res.json({ message: 'User deleted successfully' });
+};
+
+export const getRoles = async (req, res) => {
+  const roles = await userService.getAllRoles();
+  res.json(roles);
+};
+
+export const createNewRole = async (req, res) => {
+  const newRole = await userService.createRole(req.body);
+  res.status(201).json(newRole);
+};
+
+export const getRoleById = async (req, res) => {
+  const roleId = parseInt(req.params.id, 10);
+  const role = await userService.getRoleById(roleId);
+  if (!role) {
+    return res.status(404).json({ message: 'Role not found' });
+  }
+  res.json(role);
+};
+
+export const updateRole = async (req, res) => {
+  const roleId = parseInt(req.params.id, 10);
+  const updatedRole = await userService.updateRole(roleId, req.body);
+  if (!updatedRole) {
+    return res.status(404).json({ message: 'Role not found' });
+  }
+  res.json(updatedRole);
+};
+
+export const deleteRole = async (req, res) => {
+  const roleId = parseInt(req.params.id, 10);
+  const deleted = await userService.deleteRole(roleId);
+  if (!deleted) {
+    return res.status(404).json({ message: 'Role not found' });
+  }
+  res.json({ message: 'Role deleted successfully' });
 };

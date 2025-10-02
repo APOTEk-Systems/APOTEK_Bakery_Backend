@@ -20,6 +20,7 @@ export const getAllSales = async ({
   endDate,
   startDate,
   page,
+  customerName,
 }) => {
   const where = {};
 
@@ -43,6 +44,19 @@ export const getAllSales = async ({
 
   if (status) {
     where.status = status;
+  }
+
+  if (customerName) {
+    if (customerName.toLowerCase() === 'cash') {
+      where.customerId = null;
+    } else {
+      where.customer = {
+        name: {
+          contains: customerName,
+          mode: 'insensitive',
+        },
+      };
+    }
   }
 
   const sales = await prisma.sale.findMany({
