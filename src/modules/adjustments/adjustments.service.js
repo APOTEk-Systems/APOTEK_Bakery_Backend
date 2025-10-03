@@ -28,7 +28,7 @@ export async function createInventoryAdjustment({
   return { adjustment, inventoryItem };
 }
 
-export async function listInventoryAdjustments({ startDate, endDate, type }) {
+export async function listInventoryAdjustments({ startDate, endDate, type, name }) {
   const where = {};
 
   if (startDate || endDate) {
@@ -44,6 +44,16 @@ export async function listInventoryAdjustments({ startDate, endDate, type }) {
   if (type) {
     where.inventoryItem = {
       type: type,
+    };
+  }
+
+  if (name) {
+    where.inventoryItem = {
+      ...where.inventoryItem,
+      name: {
+        contains: name,
+        mode: "insensitive",
+      },
     };
   }
 
