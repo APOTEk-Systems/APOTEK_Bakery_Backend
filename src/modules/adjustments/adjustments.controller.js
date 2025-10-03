@@ -20,8 +20,12 @@ export async function createAdjustmentHandler(req, res) {
 
 export async function listAdjustmentsHandler(req, res) {
   try {
-    const { date, type } = req.query;
-    const adjustments = await listInventoryAdjustments({ date, type });
+    const { startDate, endDate, type } = req.query;
+    const adjustments = await listInventoryAdjustments({
+      startDate,
+      endDate,
+      type,
+    });
     res.json(adjustments);
   } catch (err) {
     res.status(400).json({ error: err.message });

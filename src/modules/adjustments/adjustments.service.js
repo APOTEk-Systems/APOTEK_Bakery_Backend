@@ -28,18 +28,17 @@ export async function createInventoryAdjustment({
   return { adjustment, inventoryItem };
 }
 
-export async function listInventoryAdjustments({ date, type }) {
+export async function listInventoryAdjustments({ startDate, endDate, type }) {
   const where = {};
 
-  if (date) {
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
-    where.createdAt = {
-      gte: startDate,
-      lte: endDate,
-    };
+  if (startDate || endDate) {
+    where.createdAt = {};
+    if (startDate) {
+      where.createdAt.gte = new Date(startDate);
+    }
+    if (endDate) {
+      where.createdAt.lte = new Date(endDate);
+    }
   }
 
   if (type) {

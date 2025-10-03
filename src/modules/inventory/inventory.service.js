@@ -17,7 +17,12 @@ export const getAllInventoryItems = async (type) => {
   if (type) {
     where.type = type;
   }
-  return await prisma.inventoryItem.findMany({ where });
+  return await prisma.inventoryItem.findMany({
+    where,
+    orderBy: {
+      name: "asc",
+    },
+  });
 };
 
 /**
