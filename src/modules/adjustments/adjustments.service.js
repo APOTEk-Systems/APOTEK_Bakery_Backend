@@ -28,7 +28,14 @@ export async function createInventoryAdjustment({
   return { adjustment, inventoryItem };
 }
 
-export async function listInventoryAdjustments({ startDate, endDate, type, name }) {
+export async function listInventoryAdjustments({
+  startDate,
+  endDate,
+  type,
+  name,
+  page = 1,
+  limit = 10,
+}) {
   const where = {};
 
   if (startDate || endDate) {
@@ -57,14 +64,21 @@ export async function listInventoryAdjustments({ startDate, endDate, type, name 
     };
   }
 
-  return await prisma.inventoryAdjustment.findMany({
-    where,
-    include: {
-      inventoryItem: true,
-      createdBy: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  const [adjustments, total] = await prisma.$transaction([
+    prisma.inventoryAdjustment.findMany({
+      where,
+      include: {
+        inventoryItem: true,
+        createdBy: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.inventoryAdjustment.count({ where }),
+  ]);
+
+  return { adjustments, total, page, limit };
 }

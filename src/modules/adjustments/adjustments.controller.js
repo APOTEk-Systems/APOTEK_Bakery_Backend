@@ -20,12 +20,14 @@ export async function createAdjustmentHandler(req, res) {
 
 export async function listAdjustmentsHandler(req, res) {
   try {
-    const { startDate, endDate, type, name } = req.query;
+    const { startDate, endDate, type, name, page, limit } = req.query;
     const adjustments = await listInventoryAdjustments({
       startDate,
       endDate,
       type,
       name,
+      page: +page || 1,
+      limit: +limit || 10,
     });
     res.json(adjustments);
   } catch (err) {
