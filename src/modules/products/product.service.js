@@ -32,6 +32,9 @@ export const getAllProducts = async () => {
           inventoryItem: true
         }
       }
+    },
+    orderBy:{
+      name:"asc"
     }
   });
   return products.map(parseInstructions);

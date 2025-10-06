@@ -13,8 +13,20 @@ import * as purchaseService from './purchase.service.js';
  * @memberof PurchaseController
  */
 export const getPurchaseOrders = async (req, res) => {
-  const { status } = req.query;
-  const purchaseOrders = await purchaseService.getAllPurchaseOrders({ status });
+  const {
+    page = 1,
+    limit = 10,
+    status,
+    startDate,
+    endDate,
+  } = req.query;
+  const purchaseOrders = await purchaseService.getAllPurchaseOrders({
+    page: parseInt(page),
+    limit: parseInt(limit),
+    status,
+    startDate,
+    endDate,
+  });
   res.json(purchaseOrders);
 };
 
@@ -36,8 +48,20 @@ export const createNewPurchaseOrder = async (req, res) => {
  * @memberof PurchaseController
  */
 export const getGoodsReceipts = async (req, res) => {
-  const { status } = req.query;
-  const goodsReceipts = await purchaseService.getAllGoodsReceipts({ status });
+  const {
+    page = 1,
+    limit = 10,
+    status,
+    startDate,
+    endDate,
+  } = req.query;
+  const goodsReceipts = await purchaseService.getAllGoodsReceipts({
+    page: parseInt(page),
+    limit: parseInt(limit),
+    status,
+    startDate,
+    endDate,
+  });
   res.json(goodsReceipts);
 };
 

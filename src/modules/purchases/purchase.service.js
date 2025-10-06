@@ -12,15 +12,36 @@ const prisma = new PrismaClient();
  * @returns {Promise<Array>} A promise that resolves to an array of purchase orders.
  * @memberof PurchaseService
  */
-export const getAllPurchaseOrders = async ({ status }) => {
+export const getAllPurchaseOrders = async ({
+  status,
+  startDate,
+  endDate,
+  page = 1,
+  limit = 10,
+}) => {
   const where = {};
   if (status) {
     where.status = status;
   }
-  return await prisma.purchaseOrder.findMany({
+  if (startDate && endDate) {
+    where.createdAt = {
+      gte: new Date(startDate),
+      lte: new Date(endDate),
+    };
+  }
+  const purchaseOrders = await prisma.purchaseOrder.findMany({
     where,
-    include: { items: true, goodsReceipts: true },
+    include: { items: true, goodsReceipts: true, supplier: true },
+    orderBy: {
+      createdAt: "desc",
+    },
+    skip: (page - 1) * limit,
+    take: limit,
   });
+
+
+  const total = await prisma.purchaseOrder.count({ where });
+  return { purchaseOrders, total };
 };
 
 /**
@@ -49,12 +70,49 @@ export const createPurchaseOrder = async (purchaseOrderData, userId) => {
  * @returns {Promise<Array>} A promise that resolves to an array of goods receipts.
  * @memberof PurchaseService
  */
-export const getAllGoodsReceipts = async ({ status }) => {
+export const getAllGoodsReceipts = async ({
+  status,
+  startDate,
+  endDate,
+  page = 1,
+  limit = 10,
+}) => {
   const where = {};
   if (status) {
     where.status = status;
   }
-  return await prisma.goodsReceipt.findMany({ where });
+  if (startDate && endDate) {
+    where.receivedDate = {
+      gte: new Date(startDate),
+      lte: new Date(endDate),
+    };
+  }
+
+  const goodsReceipts = await prisma.goodsReceipt.findMany({
+    where,
+    include: {
+      purchaseOrder: {
+        include: {
+          supplier: true,
+        },
+      },
+    },
+    orderBy: {
+      receivedDate: "desc",
+    },
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+
+  const total = await prisma.goodsReceipt.count({ where });
+
+  const formattedGoodsReceipts = goodsReceipts.map((gr) => ({
+    ...gr,
+    supplierName: gr.purchaseOrder.supplier.name,
+    total: gr.purchaseOrder.totalCost,
+  }));
+
+  return { goodsReceipts: formattedGoodsReceipts, total };
 };
 
 /**

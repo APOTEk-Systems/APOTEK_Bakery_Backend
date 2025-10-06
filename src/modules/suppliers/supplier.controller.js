@@ -24,9 +24,17 @@ export const createSupplier = async (req, res, next) => {
     const newSupplier = await supplierService.createSupplier(req.body);
     res.status(201).json(newSupplier);
   } catch (error) {
-    next(error);
+    if (
+      error.message === "Supplier with this email already exists" ||
+      error.message === "Supplier with this phone number already exists"
+    ) {
+      return res.status(409).json({ message: error.message });
+    }
+
+    next(error); // Pass other errors to global error handler
   }
 };
+
 
 export const updateSupplier = async (req, res, next) => {
   try {

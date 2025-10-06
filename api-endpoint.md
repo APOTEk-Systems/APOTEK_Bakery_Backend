@@ -84,7 +84,7 @@ Handles purchase orders and goods receiving. Uses createdBy/updatedBy; approvedB
 
 | Method | Endpoint | Description | Request Body | Response |
 |--------|----------|-------------|--------------|----------|
-| GET | `/purchases/orders` | List POs. | None | `{ "data": [ { "id": "uuid", "supplier": "string", "items": [{ "item": "string", "quantity": number, "unit": "string", "unitCost": number }], "totalCost": number, "status": "pending/approved/denied", "notes": "string", "date": "date", "createdBy": "uuid", "approvedBy"?: "uuid", "updatedBy": "uuid", "createdAt": "date", "updatedAt": "date" } ] }` |
+| GET | `/purchases/orders` | List POs (paginated, filter by status and date). Query: `?page=1&limit=10&status=pending&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD` | None | `{ "data": { "purchaseOrders": [ { "id": "uuid", "supplier": "string", "items": [{ "item": "string", "quantity": number, "unit": "string", "unitCost": number }], "totalCost": number, "status": "pending/approved/denied", "notes": "string", "date": "date", "createdBy": "uuid", "approvedBy"?: "uuid", "updatedBy": "uuid", "createdAt": "date", "updatedAt": "date" } ], "total": number } }` |
 | POST | `/purchases/orders` | Create PO (auto-sets createdBy). | Full. | `{ "success": true, "data": { ... } }` |
 | PUT | `/purchases/orders/:id` | Update PO (auto-sets updatedBy). | Partial. | `{ "success": true, "data": { ... } }` |
 | PUT | `/purchases/orders/:id/status` | Approve/deny PO (auto-sets approvedBy). | `{ "status": "approved/denied", "notes"?: "string" }` | `{ "success": true, "data": { "status": "string", "approvedBy": "uuid" } }` |
@@ -93,7 +93,7 @@ Handles purchase orders and goods receiving. Uses createdBy/updatedBy; approvedB
 
 | Method | Endpoint | Description | Request Body | Response |
 |--------|----------|-------------|--------------|----------|
-| GET | `/purchases/receiving` | List goods receipts. | None | `{ "data": [ { "id": "uuid", "poId": "uuid", "receivedQuantity": number, "unit": "string", "status": "partial/full/rejected", "receivedDate": "date", "notes": "string", "receivedBy": "uuid", "createdBy": "uuid", "updatedBy": "uuid", "createdAt": "date", "updatedAt": "date" } ] }` |
+| GET | `/purchases/receiving` | List goods receipts (paginated, filter by status and date). Query: `?page=1&limit=10&status=partial&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD` | None | `{ "data": { "goodsReceipts": [ { "id": "uuid", "poId": "uuid", "supplierName": "string", "total": number, "receivedQuantity": number, "unit": "string", "status": "partial/full/rejected", "receivedDate": "date", "notes": "string", "receivedBy": "uuid", "createdBy": "uuid", "updatedBy": "uuid", "createdAt": "date", "updatedAt": "date" } ], "total": number } }` |
 | POST | `/purchases/receiving` | Record receipt (auto-sets receivedBy as createdBy; adds to inventory quantity). | `{ "poId": "uuid", "receivedQuantity": number, "unit": "string", "notes"?: "string" }` | `{ "success": true, "data": { ... } }` |
 | PUT | `/purchases/receiving/:id` | Update receipt (auto-sets updatedBy). | Partial. | `{ "success": true, "data": { ... } }` |
 
