@@ -19,6 +19,7 @@ export const getPurchaseOrders = async (req, res) => {
     status,
     startDate,
     endDate,
+    search,
   } = req.query;
   const purchaseOrders = await purchaseService.getAllPurchaseOrders({
     page: parseInt(page),
@@ -26,6 +27,7 @@ export const getPurchaseOrders = async (req, res) => {
     status,
     startDate,
     endDate,
+    search,
   });
   res.json(purchaseOrders);
 };
@@ -54,6 +56,7 @@ export const getGoodsReceipts = async (req, res) => {
     status,
     startDate,
     endDate,
+    search,
   } = req.query;
   const goodsReceipts = await purchaseService.getAllGoodsReceipts({
     page: parseInt(page),
@@ -61,6 +64,7 @@ export const getGoodsReceipts = async (req, res) => {
     status,
     startDate,
     endDate,
+    search,
   });
   res.json(goodsReceipts);
 };

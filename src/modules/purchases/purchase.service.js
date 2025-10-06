@@ -18,6 +18,7 @@ export const getAllPurchaseOrders = async ({
   endDate,
   page = 1,
   limit = 10,
+  search,
 }) => {
   const where = {};
   if (status) {
@@ -29,16 +30,32 @@ export const getAllPurchaseOrders = async ({
       lte: new Date(endDate),
     };
   }
+
+  if (search) {
+    where.OR = [
+      {
+        id: isNaN(parseInt(search)) ? undefined : parseInt(search),
+      },
+      {
+        supplier: {
+          name: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+      },
+    ];
+  }
+
   const purchaseOrders = await prisma.purchaseOrder.findMany({
     where,
     include: { items: true, goodsReceipts: true, supplier: true },
     orderBy: {
-      createdAt: "desc",
+      createdAt: 'desc',
     },
     skip: (page - 1) * limit,
     take: limit,
   });
-
 
   const total = await prisma.purchaseOrder.count({ where });
   return { purchaseOrders, total };
@@ -76,6 +93,7 @@ export const getAllGoodsReceipts = async ({
   endDate,
   page = 1,
   limit = 10,
+  search,
 }) => {
   const where = {};
   if (status) {
@@ -88,6 +106,24 @@ export const getAllGoodsReceipts = async ({
     };
   }
 
+  if (search) {
+    where.OR = [
+      {
+        id: isNaN(parseInt(search)) ? undefined : parseInt(search),
+      },
+      {
+        purchaseOrder: {
+          supplier: {
+            name: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        },
+      },
+    ];
+  }
+
   const goodsReceipts = await prisma.goodsReceipt.findMany({
     where,
     include: {
@@ -98,7 +134,7 @@ export const getAllGoodsReceipts = async ({
       },
     },
     orderBy: {
-      receivedDate: "desc",
+      receivedDate: 'desc',
     },
     skip: (page - 1) * limit,
     take: limit,
