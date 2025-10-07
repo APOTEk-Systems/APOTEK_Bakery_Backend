@@ -68,17 +68,15 @@ export const resetPassword = async (req, res) => {
 };
 
 /**
- * Handles change password requests for logged-in users.
+ * Handles user logout.
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @memberof AuthController
  */
-export const changePassword = async (req, res) => {
+export const logout = async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
-    const userId = req.user.id; // Assuming userId is available from authMiddleware
-    await authService.changePassword(userId, currentPassword, newPassword);
-    res.json({ message: 'Password changed successfully' });
+    await authService.logoutUser(req, res);
+    res.status(204).send();
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

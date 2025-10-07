@@ -44,8 +44,6 @@ model User {
  updatedAt                   DateTime              @updatedAt
  password                    String
  status                      String                @default("active")
- refreshToken                String?               @unique
- refreshTokenExpiresAt       DateTime?
  auditLogs                   AuditLog[]
  createdCustomers            Customer[]            @relation("CustomerCreatedBy")
  updatedCustomers            Customer[]            @relation("CustomerUpdatedBy")
@@ -65,7 +63,19 @@ model User {
  sales                       Sale[]
  role                        UserRole              @relation(fields: [roleId], references: [id])
  roleId                      Int
+ refreshTokens               RefreshToken[]
 }
+ 
+model RefreshToken {
+  id          Int      @id @default(autoincrement())
+  token       String   @unique
+  expiresAt   DateTime
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 
 model UserRole{
   id      Int @id @default(autoincrement())
@@ -79,7 +89,7 @@ model UserRole{
 model Customer {
  id              Int        @id @default(autoincrement())
  name            String
- email           String     @unique
+ email           String?     @unique
  phone           String?
  address         String?
  status          String     @default("active")
@@ -145,6 +155,7 @@ model Supplier {
  contactInfo      String?
  email            String?
  address          String?
+ status           String?         @default("active")
  createdAt        DateTime        @default(now())
  updatedAt        DateTime        @updatedAt
  purchaseOrders   PurchaseOrder[]

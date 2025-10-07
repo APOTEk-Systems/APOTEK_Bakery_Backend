@@ -8,6 +8,6 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/refresh-token', authController.refreshToken);
 router.post('/reset-password', authMiddleware, authorize(['write:users']), authController.resetPassword);
-router.put('/change-password', authMiddleware, authController.changePassword);
+router.post('/logout', authMiddleware, authController.logout);
 
 export default router;
