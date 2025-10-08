@@ -202,12 +202,10 @@ export async function listProductionRuns({ startDate, endDate, productName, page
 
   return {
     data: runs,
-    meta: {
       total,
       page: pageNum,
       limit: take,
       totalPages: Math.ceil(total / take),
-    },
   };
 }
 
