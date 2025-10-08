@@ -201,7 +201,7 @@ export async function listProductionRuns({ startDate, endDate, productName, page
   ]);
 
   return {
-    data: runs,
+    productionRuns: runs,
       total,
       page: pageNum,
       limit: take,
