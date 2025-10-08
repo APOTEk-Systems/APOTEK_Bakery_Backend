@@ -167,23 +167,48 @@ export async function finalizeProductionRun(runId, userId) {
 }
 
 // List all production runs
-export async function listProductionRuns(date) {
+export async function listProductionRuns({ startDate, endDate, productName, page = 1, limit = 10 }) {
   const where = {};
-  if (date) {
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
+  const pageNum = Number(page);
+  const take = Number(limit);
+  const skip = (pageNum - 1) * take;
+
+  if (startDate && endDate) {
     where.createdAt = {
-      gte: startDate,
-      lte: endDate,
+      gte: new Date(startDate),
+      lte: new Date(endDate),
     };
   }
-  return prisma.productionRun.findMany({
-    where,
-    include: { product: true, producedBy: true, updatedBy: true },
-    orderBy: { createdAt: "desc" },
-  });
+
+  if (productName) {
+    where.product = {
+      name: {
+        contains: productName,
+        mode: "insensitive",
+      },
+    };
+  }
+
+  const [runs, total] = await Promise.all([
+    prisma.productionRun.findMany({
+      where,
+      include: { product: true, producedBy: true, updatedBy: true },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take,
+    }),
+    prisma.productionRun.count({ where }),
+  ]);
+
+  return {
+    data: runs,
+    meta: {
+      total,
+      page: pageNum,
+      limit: take,
+      totalPages: Math.ceil(total / take),
+    },
+  };
 }
 
 export async function getProductionRunById(runId) {

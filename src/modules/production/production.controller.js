@@ -43,8 +43,8 @@ export async function finalizeRunHandler(req, res) {
 
 export async function listRunsHandler(req, res) {
   try {
-    const { date } = req.query;
-    const runs = await listProductionRuns(date);
+    const { startDate, endDate, productName, page, limit } = req.query;
+    const runs = await listProductionRuns({ startDate, endDate, productName, page, limit });
     res.json(runs);
   } catch (err) {
     res.status(400).json({ error: err.message });
