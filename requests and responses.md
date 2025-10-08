@@ -305,6 +305,114 @@
 }
 ```
 
+### `POST /api/settings/reasons` - Create a new adjustment reason
+
+**Description:** This endpoint creates a new adjustment reason.
+
+**Request:**
+- **Method:** `POST`
+- **URL:** `http://localhost:3000/api/settings/reasons`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+- **Body:**
+  ```json
+  {
+    "name": "Damaged Goods",
+    "description": "Goods that were damaged in transit or in the store"
+  }
+  ```
+
+**Successful Response (Status: 201 Created):**
+```json
+{
+  "id": 1,
+  "name": "Damaged Goods",
+  "description": "Goods that were damaged in transit or in the store",
+  "createdAt": "2025-10-08T11:38:09.673Z",
+  "updatedAt": "2025-10-08T11:38:09.673Z"
+}
+```
+
+### `GET /api/settings/reasons` - Get all adjustment reasons
+
+**Description:** This endpoint retrieves all adjustment reasons.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/settings/reasons`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "name": "Damaged Goods",
+    "description": "Goods that were damaged in transit or in the store",
+    "createdAt": "2025-10-08T11:38:09.673Z",
+    "updatedAt": "2025-10-08T11:38:09.673Z"
+  },
+  {
+    "id": 2,
+    "name": "Stock Correction",
+    "description": "Manual correction of stock levels",
+    "createdAt": "2025-10-08T11:38:16.397Z",
+    "updatedAt": "2025-10-08T11:38:16.397Z"
+  },
+  {
+    "id": 3,
+    "name": "Expired Stock",
+    "description": "Stock that has passed its expiration date",
+    "createdAt": "2025-10-08T11:38:24.270Z",
+    "updatedAt": "2025-10-08T11:38:24.270Z"
+  }
+]
+```
+
+### `PATCH /api/settings/reasons/{id}` - Update an adjustment reason
+
+**Description:** This endpoint updates an adjustment reason.
+
+**Request:**
+- **Method:** `PATCH`
+- **URL:** `http://localhost:3000/api/settings/reasons/1`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+- **Body:**
+  ```json
+  {
+    "name": "Damaged Stock"
+  }
+  ```
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "id": 1,
+  "name": "Damaged Stock",
+  "description": "Goods that were damaged in transit or in the store",
+  "createdAt": "2025-10-08T11:38:09.673Z",
+  "updatedAt": "2025-10-08T11:38:37.463Z"
+}
+```
+
+### `DELETE /api/settings/reasons/{id}` - Delete an adjustment reason
+
+**Description:** This endpoint deletes an adjustment reason.
+
+**Request:**
+- **Method:** `DELETE`
+- **URL:** `http://localhost:3000/api/settings/reasons/3`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 204 No Content):**
+
+
+
 ## Reporting Module
 
 ### `GET /api/reports/sales` - Get sales report

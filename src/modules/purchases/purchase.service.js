@@ -108,8 +108,11 @@ export const getAllGoodsReceipts = async ({
 
   if (search) {
     where.OR = [
+      // {
+      //   id: isNaN(parseInt(search)) ? undefined : parseInt(search),
+      // },
       {
-        id: isNaN(parseInt(search)) ? undefined : parseInt(search),
+        purchaseOrderId: isNaN(parseInt(search)) ? undefined : parseInt(search),
       },
       {
         purchaseOrder: {

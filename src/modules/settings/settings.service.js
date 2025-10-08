@@ -41,3 +41,28 @@ export const updateSettings = async (key, updateData) => {
 
   return updatedSetting.data;
 };
+
+
+export async function createAdjustmentReason(data) {
+    return prisma.adjustmentReason.create({ data });
+}
+
+export async function getAdjustmentReasons() {
+    return prisma.adjustmentReason.findMany({});
+
+}
+
+export async function getAdjustmentReasonById(id) {
+    return prisma.adjustmentReason.findUnique({ where: { id } });
+}
+
+export async function updateAdjustmentReason(id, data) {
+    return prisma.adjustmentReason.update({
+        where: { id },
+        data,
+    });
+}
+
+export async function deleteAdjustmentReason(id) {
+    return prisma.adjustmentReason.delete({ where: { id } });
+}
