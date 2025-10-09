@@ -220,9 +220,9 @@ model GoodsReceipt {
 model InventoryItem {
  id                          Int                           @id @default(autoincrement())
  name                        String
- currentQuantity             Int
- minLevel                    Int
- maxLevel                    Int?
+ currentQuantity             Float
+ minLevel                    Float
+ maxLevel                    Float?
  cost                        Float
  status                      String                        @default("in-stock")
  createdAt                   DateTime                      @default(now())

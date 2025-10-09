@@ -35,6 +35,7 @@ export async function listInventoryAdjustments({
   name,
   page = 1,
   limit = 10,
+  search,
 }) {
   const where = {};
 
@@ -62,6 +63,25 @@ export async function listInventoryAdjustments({
         mode: "insensitive",
       },
     };
+  }
+
+  if (search) {
+    where.OR = [
+      {
+        inventoryItem: {
+          name: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      },
+      {
+        reason: {
+          contains: search,
+          mode: "insensitive",
+        },
+      },
+    ];
   }
 
   const [adjustments, total] = await prisma.$transaction([
