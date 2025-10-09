@@ -173,12 +173,19 @@ export async function listProductionRuns({ startDate, endDate, productName, page
   const take = Number(limit);
   const skip = (pageNum - 1) * take;
 
-  if (startDate && endDate) {
-    where.createdAt = {
-      gte: new Date(startDate),
-      lte: new Date(endDate),
-    };
-  }
+if (startDate && endDate) {
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
+
+  where.createdAt = {
+    gte: start,
+    lte: end,
+  };
+}
+
 
   if (productName) {
     where.product = {
