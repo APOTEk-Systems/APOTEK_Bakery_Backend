@@ -13,7 +13,7 @@ const prisma = new PrismaClient();
  * @memberof CustomerService
  */
 export const getAllCustomers = async () => {
-  return await prisma.customer.findMany();
+  return await prisma.customer.findMany({include: { sales: true }});
 };
 
 /**
