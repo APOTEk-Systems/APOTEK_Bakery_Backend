@@ -9,7 +9,7 @@ router.get('/expenses', authMiddleware, authorize(['view:expenses']), accounting
 router.get('/expenses/summary', authMiddleware, authorize(['view:expenses']), accountingController.getExpensesSummary);
 router.get('/expenses/:id', authMiddleware, authorize(['view:expenses']), accountingController.getExpenseById);
 router.post('/expenses', authMiddleware, authorize(['create:expenses']), accountingController.createNewExpense);
-router.put('/expenses/:id', authMiddleware, authorize(['update:expenses']), accountingController.updateExpense);
+//router.put('/expenses/:id', authMiddleware, authorize(['update:expenses']), accountingController.updateExpense);
 router.put('/expenses/:id/status', authMiddleware, authorize(['approve:expenses']), accountingController.updateExpenseStatus);
 router.delete('/expenses/:id', authMiddleware, authorize(['delete:expenses']), accountingController.deleteExpense);
 

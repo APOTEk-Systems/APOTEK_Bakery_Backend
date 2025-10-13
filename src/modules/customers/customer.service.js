@@ -39,7 +39,7 @@ export const createCustomer = async (customerData, userId) => {
  */
 export const getCustomerById = async (id) => {
   return await prisma.customer.findUnique({
-    where: { id },
+    where: { id }, include: { sales: true }
   });
 };
 
