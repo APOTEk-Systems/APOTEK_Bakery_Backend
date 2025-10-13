@@ -11,7 +11,7 @@ This document outlines the RESTful API endpoints for the Pastry Pros Suite appli
 - User Tracking: Standardized across entities (except Users and Settings): All use `createdBy` (auto-set on create) and `updatedBy` (auto-set on update). Business-specific fields (e.g., `approvedBy`, `receivedBy`, `producedBy`) are added only where relevant for transparency without redundancy. For example, in Sales, `soldBy` serves as `createdBy` since creation implies selling.
 
 ## Users & Role Management
-Handles user authentication, creation, and permission assignments. Roles are limited to 'admin' and 'cashier', but permissions are granular (e.g., cashiers can have custom subsets like read:sales but not write:inventory). No data-level user tracking on Users entities.
+Handles user authentication, creation, and permission assignments. Roles are limited to 'admin' and 'cashier', but permissions are granular (e.g., cashiers can have custom subsets like view:sales but not create:inventory, update:inventory). No data-level user tracking on Users entities.
 
 ### Authentication Endpoints
 
@@ -26,7 +26,7 @@ Handles user authentication, creation, and permission assignments. Roles are lim
 
 | Method | Endpoint | Description | Request Body | Response |
 |--------|----------|-------------|--------------|----------|
-| GET | `/users` | List all users (paginated, searchable). Query: `?page=1&limit=10&search=term` | None | `{ "data": [ { "id": "uuid", "name": "string", "email": "string", "role": "admin/cashier", "permissions": ["read:sales", "write:products"], "status": "active/inactive", "createdAt": "date" } ], "total": number, "page": number }` |
+| GET | `/users` | List all users (paginated, searchable). Query: `?page=1&limit=10&search=term` | None | `{ "data": [ { "id": "uuid", "name": "string", "email": "string", "role": "admin/cashier", "permissions": ["view:sales", "create:products", "update:products"], "status": "active/inactive", "createdAt": "date" } ], "total": number, "page": number }` |
 | GET | `/users/:id` | Get user by ID. | None | `{ "data": { ...user fields... } }` |
 | POST | `/users` | Create new user. | `{ "name": "string", "email": "string", "password": "string", "role": "admin/cashier", "permissions"?: ["string[]"] }` | `{ "success": true, "data": { ...user without password... } }` |
 | PUT | `/users/:id` | Update user. | Partial: `{ "name"?: "string", "email"?: "string", "role"?: "admin/cashier", "permissions"?: ["string[]"], "status"?: "string" }` (password requires oldPassword) | `{ "success": true, "data": { ...updated user... } }` |
@@ -37,8 +37,8 @@ Roles are predefined ('admin' with all permissions, 'cashier' with base + custom
 
 | Method | Endpoint | Description | Request Body | Response |
 |--------|----------|-------------|--------------|----------|
-| GET | `/roles` | List available roles and their default permissions. | None | `{ "data": [ { "role": "admin", "defaultPermissions": ["all"] }, { "role": "cashier", "defaultPermissions": ["read:sales", "write:sales"] } ] }` |
-| PUT | `/users/:id/permissions` | Update user-specific permissions (for granular cashier access). | `{ "permissions": ["read:customers", "write:inventory"] }` | `{ "success": true, "data": { "permissions": ["string[]"] } }` |
+| GET | `/roles` | List available roles and their default permissions. | None | `{ "data": [ { "role": "admin", "defaultPermissions": ["all"] }, { "role": "cashier", "defaultPermissions": ["view:sales", "create:sales", "update:sales"] } ] }` |
+| PUT | `/users/:id/permissions` | Update user-specific permissions (for granular cashier access). | `{ "permissions": ["view:customers", "create:inventory", "update:inventory"] }` | `{ "success": true, "data": { "permissions": ["string[]"] } }` |
 
 ## Customers Module
 Manages customer data for sales and orders. Supports credit customers with limits. Uses createdBy/updatedBy.

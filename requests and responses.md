@@ -729,7 +729,7 @@ REPORTS
     "id": 2,
     "name": "cashier",
     "description": null,
-    "permissions": ["read:sales", "write:sales"]
+    "permissions": ["view:sales", "create:sales", "update:sales"]
   }
 }
 ```
@@ -780,7 +780,7 @@ REPORTS
       "id": 2,
       "name": "cashier",
       "description": null,
-      "permissions": ["read:sales", "write:sales"]
+      "permissions": ["view:sales", "create:sales", "update:sales"]
     }
   }
 ]
@@ -813,7 +813,7 @@ REPORTS
     "id": 2,
     "name": "cashier",
     "description": null,
-    "permissions": ["read:sales", "write:sales"]
+    "permissions": ["view:sales", "create:sales", "update:sales"]
   }
 }
 ```
@@ -892,7 +892,7 @@ REPORTS
   {
     "name": "cashier",
     "description": "Cashier role with limited permissions",
-    "permissions": ["read:sales", "write:sales"]
+    "permissions": ["view:sales", "create:sales", "update:sales"]
   }
   ```
 
@@ -902,7 +902,7 @@ REPORTS
   "id": 2,
   "name": "cashier",
   "description": "Cashier role with limited permissions",
-  "permissions": ["read:sales", "write:sales"]
+    "permissions": ["view:sales", "create:sales", "update:sales"]
 }
 ```
 
@@ -929,7 +929,7 @@ REPORTS
     "id": 2,
     "name": "cashier",
     "description": "Cashier role with limited permissions",
-    "permissions": ["read:sales", "write:sales"]
+    "permissions": ["view:sales", "create:sales", "update:sales"]
   }
 ]
 ```
@@ -950,7 +950,7 @@ REPORTS
   "id": 2,
   "name": "cashier",
   "description": "Cashier role with limited permissions",
-  "permissions": ["read:sales", "write:sales"]
+    "permissions": ["view:sales", "create:sales", "update:sales"]
 }
 ```
 
@@ -968,7 +968,7 @@ REPORTS
   ```json
   {
     "name": "Cashier Updated",
-    "permissions": ["read:sales"]
+    "permissions": ["view:sales"]
   }
   ```
 
@@ -978,7 +978,7 @@ REPORTS
   "id": 2,
   "name": "Cashier Updated",
   "description": "Cashier role with limited permissions",
-  "permissions": ["read:sales"]
+  "permissions": ["view:sales"]
 }
 ```
 
