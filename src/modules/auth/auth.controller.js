@@ -81,3 +81,18 @@ export const logout = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+export const getMe = (req, res) => {
+  res.json(req.user);
+};
+
+export const updateMe = async (req, res) => {
+  try {
+    const { id } = req.user;
+    const { name, currentPassword, newPassword } = req.body;
+    const user = await authService.updateMe(id, name, currentPassword, newPassword);
+    res.json(user);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};

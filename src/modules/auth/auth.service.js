@@ -174,3 +174,30 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
   });
 };
 
+export const updateMe = async (userId, name, currentPassword, newPassword) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new Error('User not found');
+
+  const data = {};
+  if (name) {
+    data.name = name;
+  }
+
+  if (newPassword) {
+    if (!currentPassword) {
+      throw new Error('Current password is required to change password');
+    }
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) throw new Error('Incorrect current password');
+    data.password = await bcrypt.hash(newPassword, 10);
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data,
+    select: { id: true, email: true, name: true, role: true },
+  });
+
+  return updatedUser;
+};
+

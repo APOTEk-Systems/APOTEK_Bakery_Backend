@@ -10,4 +10,7 @@ router.post('/refresh-token', authController.refreshToken);
 router.post('/reset-password', authMiddleware, authorize(['update:users']), authController.resetPassword);
 router.post('/logout', authMiddleware, authController.logout);
 
+router.get('/me', authMiddleware, authController.getMe);
+router.put('/me', authMiddleware, authController.updateMe);
+
 export default router;
