@@ -59,15 +59,28 @@ export const getAllSales = async ({
     }
   }
 
-  const sales = await prisma.sale.findMany({
+  const salesRaw = await prisma.sale.findMany({
     where,
-    include: { items: true, customer: true },
+    include: { items: true, customer: true, soldBy: { select: { name: true } }, creditPayments: true },
     orderBy: { createdAt: 'desc' },
     skip: (page - 1) * limit,
     take: limit,
   });
 
   const total = await prisma.sale.count({ where });
+
+  const sales = salesRaw.map(sale => {
+    const { soldBy, creditPayments, ...rest } = sale;
+    const totalPaid = creditPayments.reduce((sum, p) => sum + p.amount, 0);
+    const outstandingBalance = sale.isCredit ? sale.total - totalPaid : 0;
+
+    return {
+      ...rest,
+      soldBy: soldBy ? soldBy.name : 'N/A',
+      outstandingBalance,
+      paid: totalPaid,
+    };
+  });
 
   return {
     sales,
@@ -162,12 +175,21 @@ export const createSale = async (saleData, userId) => {
 
       await Promise.all([customerUpdate, ...productUpdates]);
 
-      return sale;
+      let outstandingPayments = null;
+      if (isCredit) {
+        const updatedCustomer = await tx.customer.findUnique({
+          where: { id: customerId },
+        });
+        outstandingPayments = updatedCustomer.currentCredit;
+      }
+
+      return { sale, outstandingPayments };
     },
     {
       maxWait: 15000, // default: 2000
       timeout: 15000, // default: 5000
     });
+
   } catch (err) {
     console.log(err);
     // Re-throw the original error to be caught by the controller
@@ -189,10 +211,13 @@ export const getSaleById = async (id) => {
         include: { product: true },
       },
       customer: true,
+      creditPayments: true,
     },
   });
 
   if (!sale) return null;
+
+  const totalPaid = sale.creditPayments.reduce((sum, p) => sum + p.amount, 0);
 
   // Move product name into each item
   const itemsWithProductName = sale.items.map(item => ({
@@ -204,6 +229,7 @@ export const getSaleById = async (id) => {
   return {
     ...sale,
     items: itemsWithProductName,
+    paid: totalPaid,
   };
 };
 
@@ -219,38 +245,83 @@ export const updateSale = async (id, saleData) => {
   return await prisma.sale.update({ where: { id }, data: saleData });
 };
 
-/**
- * Pays a sale.
- * @param {number} saleId - The ID of the sale to pay.
- * @returns {Promise<object>} A promise that resolves to the paid sale object.
- * @memberof SaleService
- */
-export const paySale = async (saleId) => {
-  const sale = await prisma.sale.findUnique({ where: { id: saleId } });
-  if (!sale) {
-    throw new Error('Sale not found');
-  }
-
-  if (sale.status === 'completed') {
-    throw new Error('Sale is already paid');
-  }
-
-  if (!sale.isCredit) {
-    throw new Error('Sale is not a credit sale');
-  }
+export const createCreditPayment = async (saleId, paymentData, userId) => {
+  const { amount, notes } = paymentData;
 
   return await prisma.$transaction(async (tx) => {
-    const updatedSale = await tx.sale.update({
+    const sale = await tx.sale.findUnique({
       where: { id: saleId },
-      data: { status: 'completed' },
+      include: { creditPayments: true },
     });
 
+    if (!sale) {
+      throw new Error('Sale not found');
+    }
+
+    if (!sale.isCredit) {
+      throw new Error('This is not a credit sale.');
+    }
+
+    const totalPaid = sale.creditPayments.reduce((sum, p) => sum + p.amount, 0);
+    const outstandingAmount = sale.total - totalPaid;
+
+    if (amount > outstandingAmount) {
+      throw new Error(`Payment amount cannot exceed the outstanding amount of ${outstandingAmount}.`);
+    }
+
+    const customer = await tx.customer.findUnique({ where: { id: sale.customerId } });
+
+    if (!customer) {
+      throw new Error('Customer not found for this sale.');
+    }
+
+    // 1. Create the credit payment
+    const payment = await tx.creditPayment.create({
+      data: {
+        amount,
+        notes,
+        saleId,
+        customerId: sale.customerId,
+      },
+    });
+
+    // 2. Update customer's current credit balance
     await tx.customer.update({
       where: { id: sale.customerId },
-      data: { currentCredit: { decrement: sale.total } },
+      data: { currentCredit: { decrement: amount } },
     });
 
-    return updatedSale;
+    // 3. Update the sale's payment status
+    const newTotalPaid = totalPaid + amount;
+    let newPaymentStatus = 'PARTIALLY_PAID';
+    let newStatus = sale.status;
+    if (newTotalPaid >= sale.total) {
+      newPaymentStatus = 'PAID';
+      newStatus = 'completed';
+    }
+
+    await tx.sale.update({
+      where: { id: saleId },
+      data: { 
+        paymentStatus: newPaymentStatus,
+        status: newStatus
+       },
+    });
+
+    return payment;
+  });
+};
+
+export const getPaymentsForSale = async (saleId) => {
+  return await prisma.creditPayment.findMany({
+    where: { saleId },
+    orderBy: { paymentDate: 'desc' },
+  });
+};
+
+export const getAllCreditPayments = async () => {
+  return await prisma.creditPayment.findMany({
+    orderBy: { paymentDate: 'desc' },
   });
 };
 

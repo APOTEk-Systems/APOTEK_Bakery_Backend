@@ -107,10 +107,26 @@ model Customer {
  createdBy       User       @relation("CustomerCreatedBy", fields: [createdById], references: [id])
  updatedBy       User?      @relation("CustomerUpdatedBy", fields: [updatedById], references: [id])
  sales           Sale[]
+ creditPayments  CreditPayment[]
 
 
  @@index([createdById])
  @@index([updatedById])
+}
+
+model CreditPayment {
+  id          Int       @id @default(autoincrement())
+  amount      Float
+  customerId  Int
+  saleId      Int
+  paymentDate DateTime  @default(now())
+  notes       String?
+
+  customer    Customer  @relation(fields: [customerId], references: [id])
+  sale        Sale      @relation(fields: [saleId], references: [id])
+
+  @@index([customerId])
+  @@index([saleId])
 }
 
 
@@ -122,11 +138,13 @@ model Sale {
  creditDueDate   DateTime?
  total           Float
  status          String     @default("completed")
+ paymentStatus   String     @default("UNPAID")
  createdAt       DateTime   @default(now())
  updatedAt       DateTime   @updatedAt
  customer        Customer?  @relation(fields: [customerId], references: [id], onDelete: Cascade)
  soldBy          User       @relation(fields: [soldById], references: [id])
  items           SaleItem[]
+ creditPayments  CreditPayment[]
 
 
  @@index([customerId])

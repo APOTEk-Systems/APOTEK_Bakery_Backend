@@ -1,3 +1,4 @@
+//@ts-check
 
 import saleRoutes from './sale.routes.js';
 

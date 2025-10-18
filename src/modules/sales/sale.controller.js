@@ -38,8 +38,8 @@ export const getSales = async (req, res) => {
  */
 export const createNewSale = async (req, res) => {
   try {
-    const newSale = await saleService.createSale(req.body, req.user.id);
-    res.status(201).json(newSale);
+    const { sale, outstandingPayments } = await saleService.createSale(req.body, req.user.id);
+    res.status(201).json({ sale, outstandingPayments });
   } catch (error) {
     res.status(400).json({ message: error.message }); // Return the actual error message
   }
@@ -89,25 +89,6 @@ export const updateSale = async (req, res) => {
  * @param {import('express').Response} res - The Express response object.
  * @memberof SaleController
  */
-export const paySale = async (req, res) => {
-  try {
-    const paidSale = await saleService.paySale(parseInt(req.params.id));
-    if (paidSale) {
-      res.json(paidSale);
-    } else {
-      res.status(404).json({ message: 'Sale not found' });
-    }
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
-
-/**
- * Handles the deletion of a sale.
- * @param {import('express').Request} req - The Express request object.
- * @param {import('express').Response} res - The Express response object.
- * @memberof SaleController
- */
 export const deleteSale = async (req, res) => {
   try {
     const deleted = await saleService.deleteSale(parseInt(req.params.id));
@@ -116,6 +97,37 @@ export const deleteSale = async (req, res) => {
     } else {
       res.status(404).json({ message: 'Sale not found' });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const createCreditPayment = async (req, res) => {
+  try {
+    const payment = await saleService.createCreditPayment(
+      parseInt(req.params.id),
+      req.body,
+      req.user.id
+    );
+    res.status(201).json(payment);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const getPaymentsForSale = async (req, res) => {
+  try {
+    const payments = await saleService.getPaymentsForSale(parseInt(req.params.id));
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getAllCreditPayments = async (req, res) => {
+  try {
+    const payments = await saleService.getAllCreditPayments();
+    res.json(payments);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
