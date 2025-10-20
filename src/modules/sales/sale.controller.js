@@ -124,6 +124,7 @@ export const getPaymentsForSale = async (req, res) => {
   }
 };
 
+//Similar to getSales but only for credit payments
 export const getAllCreditPayments = async (req, res) => {
   try {
     const payments = await saleService.getAllCreditPayments();
