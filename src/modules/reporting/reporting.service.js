@@ -174,21 +174,42 @@ export const generateProductionReport = async (params) => {
 
   const productionRuns = await prisma.productionRun.findMany({
     where: dateFilter,
-    include: { product: true, producedBy: true },
+    include: {
+      product: {
+        include: {
+          productRecipes: {
+            include: {
+              inventoryItem: true, // Include the inventory item details
+            },
+          },
+        },
+      },
+      producedBy: true,
+    },
   });
 
   const totalProduced = productionRuns.reduce((sum, run) => sum + run.quantityProduced, 0);
   const totalCost = productionRuns.reduce((sum, run) => sum + run.cost, 0);
 
- const production = productionRuns.map((p) => ({
-  ...p,
-  product: p.product.name, // flatten product to just the name
-}));
+  const production = productionRuns.map((run) => {
+    const ingredients = run.product.productRecipes
+      .map((recipe) => recipe.inventoryItem.name)
+      .join(', ');
+
+    return {
+      Date: run.createdAt.toISOString().split('T')[0],
+      'Item Name': run.product.name,
+      Quantity: run.quantityProduced,
+      'Ingredients Used': ingredients,
+      Cost: run.cost,
+      'Produced By': run.producedBy.name,
+    };
+  });
 
   return {
     totalProduced,
-    production,
     totalCost,
+    production,
   };
 };
 

@@ -688,18 +688,25 @@
 {
   "data": {
     "totalProduced": 148,
-    "byProduct": {
-      "Maandazi": {
-        "totalProduced": 100,
-        "totalCost": 30000
-      },
-      "white bread": {
-        "totalProduced": 48,
-        "totalCost": 24715
-      }
-    },
     "totalCost": 54715,
-    "efficiency": 0
+    "production": [
+      {
+        "Date": "2025-09-25",
+        "Item Name": "Maandazi",
+        "Quantity": 100,
+        "Ingredients Used": "Flour, Sugar, Yeast",
+        "Cost": 30000,
+        "Produced By": "John Doe"
+      },
+      {
+        "Date": "2025-09-25",
+        "Item Name": "white bread",
+        "Quantity": 48,
+        "Ingredients Used": "Flour, Sugar, Yeast, Salt",
+        "Cost": 24715,
+        "Produced By": "Jane Doe"
+      }
+    ]
   }
 }
 ```
