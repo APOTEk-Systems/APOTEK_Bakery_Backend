@@ -321,6 +321,7 @@ export const getPaymentsForSale = async (saleId) => {
 
 export const getAllCreditPayments = async () => {
   return await prisma.creditPayment.findMany({
+    include:{ customer: true },
     orderBy: { paymentDate: 'desc' },
   });
 };

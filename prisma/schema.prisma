@@ -299,6 +299,7 @@ model Expense {
   id              Int       @id @default(autoincrement())
   amount          Float
   date            DateTime
+  paymentMethod   String    @default("cash")
   status          String    @default("pending")
   notes           String?
   createdAt       DateTime  @default(now())
