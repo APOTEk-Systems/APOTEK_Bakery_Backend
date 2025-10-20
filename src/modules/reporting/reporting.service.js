@@ -174,7 +174,7 @@ export const generateProductionReport = async (params) => {
 
   const productionRuns = await prisma.productionRun.findMany({
     where: dateFilter,
-    include: { product: true },
+    include: { product: true, producedBy: true },
   });
 
   const totalProduced = productionRuns.reduce((sum, run) => sum + run.quantityProduced, 0);
