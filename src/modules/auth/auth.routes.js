@@ -12,37 +12,39 @@ const router = Router();
  *   description: User authentication and authorization
  */
 
-/**
- * @swagger
- * /api/auth/register:
- *   post:
- *     summary: Register a new user
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *               - name
- *               - roleId
- *             properties:
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *               name:
- *                 type: string
- *               roleId:
- *                 type: integer
- *     responses:
- *       201:
- *         description: User registered successfully.
- */
-router.post('/register', authController.register);
+if (process.env.NODE_ENV === 'development') {
+  /**
+   * @swagger
+   * /api/auth/register:
+   *   post:
+   *     summary: Register a new user
+   *     tags: [Authentication]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - email
+   *               - password
+   *               - name
+   *               - roleId
+   *             properties:
+   *               email:
+   *                 type: string
+   *               password:
+   *                 type: string
+   *               name:
+   *                 type: string
+   *               roleId:
+   *                 type: integer
+   *     responses:
+   *       201:
+   *         description: User registered successfully.
+   */
+  router.post('/register', authController.register);
+}
 
 /**
  * @swagger

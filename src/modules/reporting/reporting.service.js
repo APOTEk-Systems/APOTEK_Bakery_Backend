@@ -102,6 +102,36 @@ export const generateCustomerReport = async (params) => {
 
 
 /**
+ * Calculates Gross Profit.
+ * @param {object} params - Parameters for the calculation (e.g., totalSales, costOfGoodsSold).
+ * @returns {object} An object containing the calculation parameters and the gross profit result.
+ * @memberof ReportingService
+ */
+export const calculateGrossProfit = (params) => {
+  const { totalSales, costOfGoodsSold } = params;
+  const grossProfit = totalSales - costOfGoodsSold;
+  return {
+    parameters: { totalSales, costOfGoodsSold },
+    result: grossProfit,
+  };
+};
+
+/**
+ * Calculates Net Profit.
+ * @param {object} params - Parameters for the calculation (e.g., grossProfit, operatingExpenses).
+ * @returns {object} An object containing the calculation parameters and the net profit result.
+ * @memberof ReportingService
+ */
+export const calculateNetProfit = (params) => {
+  const { grossProfit, operatingExpenses } = params;
+  const netProfit = grossProfit - operatingExpenses;
+  return {
+    parameters: { grossProfit, operatingExpenses },
+    result: netProfit,
+  };
+};
+
+/**
  * Generates a financial report.
  * @param {object} params - Parameters for the report (e.g., period).
  * @returns {Promise<object>} A promise that resolves to the financial report data.
@@ -147,17 +177,23 @@ export const generateFinancialReport = async (params) => {
   );
 
   // 4. Gross Profit = Sales – COGS
-  const grossProfit = totalSales - costOfGoodsSold;
+  const { parameters: grossProfitParams, result: grossProfit } = calculateGrossProfit({ totalSales, costOfGoodsSold });
 
   // 5. Net Profit = Gross Profit – Operating Expenses
-  const netProfit = grossProfit - operatingExpenses;
+  const { parameters: netProfitParams, result: netProfit } = calculateNetProfit({ grossProfit, operatingExpenses });
 
   return {
     revenue: totalSales,
     cogs: costOfGoodsSold,
     operatingExpenses,
-    grossProfit,
-    netProfit,
+    grossProfit: {
+      parameters: grossProfitParams,
+      result: grossProfit,
+    },
+    netProfit: {
+      parameters: netProfitParams,
+      result: netProfit,
+    },
   };
 };
 
