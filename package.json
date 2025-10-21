@@ -8,7 +8,6 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "postinstall": "prisma generate"
-   
   },
   "keywords": [],
   "author": "",
@@ -23,9 +22,12 @@
     "csurf": "^1.11.0",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.5",
-    "prisma": "^6.16.1"
+    "prisma": "^6.16.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

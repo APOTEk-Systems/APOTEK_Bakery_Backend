@@ -45,6 +45,9 @@ model User {
  updatedAt                   DateTime              @updatedAt
  password                    String
  status                      String                @default("active")
+ loginCode                   String?               @unique
+ failedLoginAttempts         Int?                  @default(0)
+ lockoutUntil                DateTime?             
  auditLogs                   AuditLog[]
  createdCustomers            Customer[]            @relation("CustomerCreatedBy")
  updatedCustomers            Customer[]            @relation("CustomerUpdatedBy")

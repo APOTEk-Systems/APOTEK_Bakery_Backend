@@ -1,0 +1,276 @@
+openapi: 3.0.0
+info:
+  title: Pastry Pros API
+  description: API for the Pastry Pros application
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: Sales
+    description: Sales module
+paths:
+  /api/sales:
+    get:
+      tags:
+        - Sales
+      summary: Get all sales
+      description: This endpoint retrieves a paginated list of all sales. It can be filtered by a date range, credit status, and sale status.
+      parameters:
+        - name: page
+          in: query
+          description: The page number to retrieve. Defaults to 1.
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: The number of items to retrieve per page. Defaults to 10.
+          schema:
+            type: integer
+        - name: startDate
+          in: query
+          description: The start date of the date range to filter by.
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: The end date of the date range to filter by.
+          schema:
+            type: string
+            format: date
+        - name: isCredit
+          in: query
+          description: Filter by credit status.
+          schema:
+            type: boolean
+        - name: status
+          in: query
+          description: Filter by sale status.
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sale:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      customerId:
+                        type: integer
+                      soldById:
+                        type: integer
+                      isCredit:
+                        type: boolean
+                      creditDueDate:
+                        type: string
+                        format: date-time
+                      total:
+                        type: number
+                      status:
+                        type: string
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            saleId:
+                              type: integer
+                            productId:
+                              type: integer
+                            quantity:
+                              type: integer
+                            price:
+                              type: number
+                            notes:
+                              type: string
+                  outstandingPayments:
+                    type: number
+  /api/sales/{id}/payments:
+    post:
+      tags:
+        - Sales
+      summary: Create a new payment for a sale
+      description: This endpoint creates a new payment for a sale.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  amount:
+                    type: number
+                  customerId:
+                    type: integer
+                  saleId:
+                    type: integer
+                  paymentDate:
+                    type: string
+                    format: date-time
+                  notes:
+                    type: string
+    get:
+      tags:
+        - Sales
+      summary: Get all payments for a sale
+      description: This endpoint retrieves all payments for a sale.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    amount:
+                      type: number
+                    customerId:
+                      type: integer
+                    saleId:
+                      type: integer
+                    paymentDate:
+                      type: string
+                      format: date-time
+                    notes:
+                      type: string
+  /api/sales/{id}:
+    get:
+      tags:
+        - Sales
+      summary: Get a single sale
+      description: This endpoint retrieves a single sale by its ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  customerId:
+                    type: integer
+                  soldById:
+                    type: integer
+                  isCredit:
+                    type: boolean
+                  creditDueDate:
+                    type: string
+                    format: date-time
+                  total:
+                    type: number
+                  status:
+                    type: string
+                  paymentStatus:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+                  updatedAt:
+                    type: string
+                    format: date-time
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        saleId:
+                          type: integer
+                        productId:
+                          type: integer
+                        quantity:
+                          type: integer
+                        price:
+                          type: number
+                        notes:
+                          type: string
+                        name:
+                          type: string
+                  customer:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      address:
+                        type: string
+                      status:
+                        type: string
+                      isCredit:
+                        type: boolean
+                      creditLimit:
+                        type: number
+                      currentCredit:
+                        type: number
+                      loyaltyPoints:
+                        type: integer
+                      birthday:
+                        type: string
+                        format: date-time
+                      notes:
+                        type: string
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+                      createdById:
+                        type: integer
+                      updatedById:
+                        type: integer

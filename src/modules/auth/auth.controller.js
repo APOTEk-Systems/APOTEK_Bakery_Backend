@@ -36,6 +36,16 @@ export const login = async (req, res) => {
   }
 };
 
+export const loginWithCode = async (req, res) => {
+  try {
+    const { email, loginCode } = req.body;
+    const { user, token } = await authService.loginWithCode(email, loginCode, res);
+    res.json({ user, token });
+  } catch (error) {
+    res.status(401).json({ message: error.message });
+  }
+};
+
 /**
  * Handles refresh token requests.
  * @param {import('express').Request} req - The Express request object.

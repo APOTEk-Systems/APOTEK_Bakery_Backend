@@ -7,6 +7,22 @@ const prisma = new PrismaClient();
  * @description Handles all user-related business logic.
  */
 
+async function generateUniqueLoginCode() {
+  let loginCode;
+  let isUnique = false;
+
+  while (!isUnique) {
+    loginCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const existingUser = await prisma.user.findUnique({
+      where: { loginCode },
+    });
+    if (!existingUser) {
+      isUnique = true;
+    }
+  }
+  return loginCode;
+}
+
 /**
  * Retrieves all users from the database.
  * @returns {Promise<Array>} A promise that resolves to an array of users.
@@ -37,11 +53,13 @@ export const createUser = async (userData) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
+  const loginCode = await generateUniqueLoginCode();
 
   const data = {
     ...rest,
     email,
     password: hashedPassword,
+    loginCode,
     role: {
       connect: { id: roleId },
     },

@@ -18,6 +18,8 @@ import authModule from './modules/auth/index.js';
 import supplierModule from './modules/suppliers/index.js';
 import adjustmentsModule from './modules/adjustments/index.js';
 import dashboardModule from './modules/dashboard/index.js';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './swagger.js';
 
 const app = express();
 
@@ -55,6 +57,8 @@ app.use('/api/reports', reportingModule);
 app.use('/api/settings', settingsModule);
 app.use('/api/suppliers', supplierModule);
 app.use('/api/dashboard', dashboardModule);
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
 

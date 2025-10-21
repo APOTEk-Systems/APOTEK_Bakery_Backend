@@ -75,6 +75,71 @@ export const loginUser = async (email, password, res) => {
   return { user: { id: user.id, email: user.email, name:user.name, role: user.role.name, permissions: user.role.permissions }, token };
 };
 
+export const loginWithCode = async (email, loginCode, res) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: { role: true },
+  });
+
+  if (!user) {
+    throw new Error('Invalid credentials');
+  }
+
+  if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+    throw new Error('Account is locked. Please try again later.');
+  }
+
+  if (user.loginCode !== loginCode) {
+    const failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+    let lockoutUntil = null;
+
+    if (failedLoginAttempts >= 10) {
+      lockoutUntil = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 minutes
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginAttempts,
+        lockoutUntil,
+      },
+    });
+
+    throw new Error('Invalid credentials');
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      failedLoginAttempts: 0,
+      lockoutUntil: null,
+    },
+  });
+
+  const token = jwt.sign({ userId: user.id, role: user.role.name, permissions: user.role.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
+
+  const refreshToken = crypto.randomBytes(32).toString('hex');
+  const hashedRefreshToken = hashToken(refreshToken);
+  const refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  await prisma.refreshToken.create({
+    data: {
+      token: hashedRefreshToken,
+      expiresAt: refreshTokenExpiry,
+      userId: user.id,
+    },
+  });
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite:process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    expires: refreshTokenExpiry,
+  });
+
+  return { user: { id: user.id, email: user.email, name:user.name, role: user.role.name, permissions: user.role.permissions }, token };
+};
+
 export const refreshToken = async (req, res) => {
   const { refreshToken: oldRefreshToken } = req.cookies;
   if (!oldRefreshToken) throw new Error('Refresh token not found');
