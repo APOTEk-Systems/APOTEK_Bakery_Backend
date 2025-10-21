@@ -13,8 +13,17 @@ import * as productService from './product.service.js';
  * @memberof ProductController
  */
 export const getProducts = async (req, res) => {
-  const products = await productService.getAllProducts();
-  res.json(products);
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const filter = req.query.filter;
+    const orderBy = req.query.orderBy;
+
+    const products = await productService.getAllProducts(page, limit, filter, orderBy);
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 /**
