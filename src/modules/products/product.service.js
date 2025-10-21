@@ -82,12 +82,7 @@ export const getAllProducts = async (page, limit, filter, orderBy) => {
 
     const total = await prisma.product.count({ where });
 
-    return {
-        data: productsWithCost.map(parseInstructions),
-        total,
-        page,
-        limit,
-    };
+    return productsWithCost.map(parseInstructions);
 };
 
 /**
