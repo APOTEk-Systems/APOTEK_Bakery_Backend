@@ -1,2 +1,6 @@
 node_modules
 .env
+
+api-endpoint.md
+requests and responses.md 
+sales.md
