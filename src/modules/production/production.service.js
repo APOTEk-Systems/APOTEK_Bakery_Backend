@@ -240,3 +240,68 @@ export async function getProductionRunById(runId) {
 
   return run;
 }
+
+export async function getProductionSummary() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday as the start of the week
+
+  const totalProductionRuns = await prisma.productionRun.count();
+  const totalQuantityProducedResult = await prisma.productionRun.aggregate({
+    _sum: {
+      quantityProduced: true,
+    },
+  });
+  const totalCostResult = await prisma.productionRun.aggregate({
+    _sum: {
+      cost: true,
+    },
+  });
+
+  // Daily Production
+  const dailyProductionResult = await prisma.productionRun.aggregate({
+    _sum: {
+      quantityProduced: true,
+    },
+    where: {
+      createdAt: {
+        gte: today,
+      },
+    },
+  });
+
+  // Weekly Production
+  const weeklyProductionResult = await prisma.productionRun.aggregate({
+    _sum: {
+      quantityProduced: true,
+    },
+    where: {
+      createdAt: {
+        gte: startOfWeek,
+      },
+    },
+  });
+
+  // Weekly Production Cost
+  const weeklyProductionCostResult = await prisma.productionRun.aggregate({
+    _sum: {
+      cost: true,
+    },
+    where: {
+      createdAt: {
+        gte: startOfWeek,
+      },
+    },
+  });
+
+  return {
+   // totalProductionRuns,
+    //totalQuantityProduced: totalQuantityProducedResult._sum.quantityProduced || 0,
+    //totalProductionCost: totalCostResult._sum.cost || 0,
+    dailyProduction: dailyProductionResult._sum.quantityProduced || 0,
+    weeklyProduction: weeklyProductionResult._sum.quantityProduced || 0,
+    weeklyProductionCost: weeklyProductionCostResult._sum.cost || 0,
+  };
+}

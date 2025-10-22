@@ -44,3 +44,12 @@ export const getCustomersDashboardData = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getProductionDashboardData = async (req, res, next) => {
+  try {
+    const data = await dashboardService.getProductionDashboardData();
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+};

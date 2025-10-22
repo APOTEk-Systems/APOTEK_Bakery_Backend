@@ -9,5 +9,6 @@ router.get('/purchases', authMiddleware, authorize(['view:purchasesDashboard']),
 router.get('/inventory', authMiddleware, authorize(['view:inventoryDashboard']), dashboardController.getInventoryDashboardData);
 router.get('/accounting', authMiddleware, authorize(['view:accountingDashboard']), dashboardController.getAccountingDashboardData);
 router.get('/customers', authMiddleware, authorize(['view:customersDashboard']), dashboardController.getCustomersDashboardData);
+router.get('/production', authMiddleware, authorize(['view:productionDashboard']), dashboardController.getProductionDashboardData);
 
 export default router;

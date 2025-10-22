@@ -2,6 +2,7 @@ import { getSalesSummary } from '../sales/sale.service.js';
 import { getPurchaseSummary } from '../purchases/purchase.service.js';
 import { getInventorySummary } from '../inventory/inventory.service.js';
 import { getAccountingSummary } from '../accounting/accounting.service.js';
+import { getProductionSummary } from '../production/production.service.js';
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
@@ -38,4 +39,8 @@ export const getCustomersDashboardData = async () => {
     totalCustomers,
     newCustomersThisWeek,
   };
+};
+
+export const getProductionDashboardData = async () => {
+  return await getProductionSummary();
 };
