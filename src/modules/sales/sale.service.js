@@ -1,5 +1,4 @@
-
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 /**
@@ -39,7 +38,7 @@ export const getAllSales = async ({
   }
 
   if (isCredit) {
-    where.isCredit = isCredit === 'true';
+    where.isCredit = isCredit === "true";
   }
 
   if (status) {
@@ -47,13 +46,13 @@ export const getAllSales = async ({
   }
 
   if (customerName) {
-    if (customerName.toLowerCase() === 'cash') {
+    if (customerName.toLowerCase() === "cash") {
       where.customerId = null;
     } else {
       where.customer = {
         name: {
           contains: customerName,
-          mode: 'insensitive',
+          mode: "insensitive",
         },
       };
     }
@@ -61,22 +60,27 @@ export const getAllSales = async ({
 
   const salesRaw = await prisma.sale.findMany({
     where,
-    include: { items: true, customer: true, soldBy: { select: { name: true } }, creditPayments: true },
-    orderBy: { createdAt: 'desc' },
+    include: {
+      items: true,
+      customer: true,
+      soldBy: { select: { name: true } },
+      creditPayments: true,
+    },
+    orderBy: { createdAt: "desc" },
     skip: (page - 1) * limit,
     take: limit,
   });
 
   const total = await prisma.sale.count({ where });
 
-  const sales = salesRaw.map(sale => {
+  const sales = salesRaw.map((sale) => {
     const { soldBy, creditPayments, ...rest } = sale;
     const totalPaid = creditPayments.reduce((sum, p) => sum + p.amount, 0);
     const outstandingBalance = sale.isCredit ? sale.total - totalPaid : 0;
 
     return {
       ...rest,
-      soldBy: soldBy ? soldBy.name : 'N/A',
+      soldBy: soldBy ? soldBy.name : "N/A",
       outstandingBalance,
       paid: totalPaid,
     };
@@ -90,7 +94,6 @@ export const getAllSales = async ({
   };
 };
 
-
 /**
  * Creates a new sale.
  * @param {object} saleData - The data for the new sale.
@@ -101,95 +104,101 @@ export const createSale = async (saleData, userId) => {
   const { items, customerId, isCredit, total, ...rest } = saleData;
 
   try {
-    return await prisma.$transaction(async (tx) => {
-      // 1. Check for product existence and credit in parallel
-      const productExistenceChecks = items.map(item =>
-        tx.product.findUnique({ where: { id: item.productId } })
-      );
+    return await prisma.$transaction(
+      async (tx) => {
+        // 1. Check for product existence and credit in parallel
+        const productExistenceChecks = items.map((item) =>
+          tx.product.findUnique({ where: { id: item.productId } })
+        );
 
-      const creditCheck = isCredit
-        ? tx.customer.findUnique({ where: { id: customerId } })
-        : Promise.resolve(null);
+        const creditCheck = isCredit
+          ? tx.customer.findUnique({ where: { id: customerId } })
+          : Promise.resolve(null);
 
-      const [products, customer] = await Promise.all([
-        Promise.all(productExistenceChecks),
-        creditCheck,
-      ]);
+        const [products, customer] = await Promise.all([
+          Promise.all(productExistenceChecks),
+          creditCheck,
+        ]);
 
-      // 2. Validate products
-      products.forEach((product, index) => {
-        if (!product) {
-          throw new Error(`Product with id ${items[index].productId} not found.`);
-        }
-      });
-
-      // 3. Validate customer and credit
-      if (isCredit) {
-        if (!customerId) {
-          throw new Error('customerId is required for credit sales.');
-        }
-        if (!customer) {
-          throw new Error('Customer not found');
-        }
-        const currentCredit = customer.currentCredit || 0;
-        if (customer.creditLimit !== null && currentCredit + total > customer.creditLimit) {
-          throw new Error('Credit limit exceeded');
-        }
-      }
-
-      // 4. Create the sale
-      const saleInput = {
-        ...rest,
-        total,
-        isCredit,
-        status: isCredit ? 'unpaid' : 'completed',
-        soldBy: { connect: { id: userId } },
-        items: {
-          create: items,
-        },
-      };
-
-      if (customerId) {
-        saleInput.customer = { connect: { id: customerId } };
-      }
-
-      const sale = await tx.sale.create({
-        data: saleInput,
-        include: { items: true },
-      });
-
-      // 5. Update customer credit and product quantities in parallel
-      const customerUpdate = isCredit
-        ? tx.customer.update({
-            where: { id: customerId },
-            data: { currentCredit: { increment: total } },
-          })
-        : Promise.resolve();
-
-      const productUpdates = items.map(item =>
-        tx.product.update({
-          where: { id: item.productId },
-          data: { quantity: { decrement: item.quantity } },
-        })
-      );
-
-      await Promise.all([customerUpdate, ...productUpdates]);
-
-      let outstandingPayments = null;
-      if (isCredit) {
-        const updatedCustomer = await tx.customer.findUnique({
-          where: { id: customerId },
+        // 2. Validate products
+        products.forEach((product, index) => {
+          if (!product) {
+            throw new Error(
+              `Product with id ${items[index].productId} not found.`
+            );
+          }
         });
-        outstandingPayments = updatedCustomer.currentCredit;
+
+        // 3. Validate customer and credit
+        if (isCredit) {
+          if (!customerId) {
+            throw new Error("customerId is required for credit sales.");
+          }
+          if (!customer) {
+            throw new Error("Customer not found");
+          }
+          const currentCredit = customer.currentCredit || 0;
+          if (
+            customer.creditLimit !== null &&
+            currentCredit + total > customer.creditLimit
+          ) {
+            throw new Error("Credit limit exceeded");
+          }
+        }
+
+        // 4. Create the sale
+        const saleInput = {
+          ...rest,
+          total,
+          isCredit,
+          status: isCredit ? "unpaid" : "completed",
+          soldBy: { connect: { id: userId } },
+          items: {
+            create: items,
+          },
+        };
+
+        if (customerId) {
+          saleInput.customer = { connect: { id: customerId } };
+        }
+
+        const sale = await tx.sale.create({
+          data: saleInput,
+          include: { items: true },
+        });
+
+        // 5. Update customer credit and product quantities in parallel
+        const customerUpdate = isCredit
+          ? tx.customer.update({
+              where: { id: customerId },
+              data: { currentCredit: { increment: total } },
+            })
+          : Promise.resolve();
+
+        const productUpdates = items.map((item) =>
+          tx.product.update({
+            where: { id: item.productId },
+            data: { quantity: { decrement: item.quantity } },
+          })
+        );
+
+        await Promise.all([customerUpdate, ...productUpdates]);
+
+        let outstandingPayments = null;
+        if (isCredit) {
+          const updatedCustomer = await tx.customer.findUnique({
+            where: { id: customerId },
+          });
+          outstandingPayments = updatedCustomer.currentCredit;
+        }
+
+        return { sale, outstandingPayments };
+      },
+      {
+        maxWait: 15000, // default: 2000
+        timeout: 15000, // default: 5000
       }
-
-      return { sale, outstandingPayments };
-    },
-    {
-      maxWait: 15000, // default: 2000
-      timeout: 15000, // default: 5000
-    });
-
+    );
   } catch (err) {
     console.log(err);
     // Re-throw the original error to be caught by the controller
@@ -220,7 +229,7 @@ export const getSaleById = async (id) => {
   const totalPaid = sale.creditPayments.reduce((sum, p) => sum + p.amount, 0);
 
   // Move product name into each item
-  const itemsWithProductName = sale.items.map(item => ({
+  const itemsWithProductName = sale.items.map((item) => ({
     ...item,
     name: item.product.name,
     product: undefined, // optional: remove the original product object
@@ -232,7 +241,6 @@ export const getSaleById = async (id) => {
     paid: totalPaid,
   };
 };
-
 
 /**
  * Updates an existing sale.
@@ -255,24 +263,28 @@ export const createCreditPayment = async (saleId, paymentData, userId) => {
     });
 
     if (!sale) {
-      throw new Error('Sale not found');
+      throw new Error("Sale not found");
     }
 
     if (!sale.isCredit) {
-      throw new Error('This is not a credit sale.');
+      throw new Error("This is not a credit sale.");
     }
 
     const totalPaid = sale.creditPayments.reduce((sum, p) => sum + p.amount, 0);
     const outstandingAmount = sale.total - totalPaid;
 
     if (amount > outstandingAmount) {
-      throw new Error(`Payment amount cannot exceed the outstanding amount of ${outstandingAmount}.`);
+      throw new Error(
+        `Payment amount cannot exceed the outstanding amount of ${outstandingAmount}.`
+      );
     }
 
-    const customer = await tx.customer.findUnique({ where: { id: sale.customerId } });
+    const customer = await tx.customer.findUnique({
+      where: { id: sale.customerId },
+    });
 
     if (!customer) {
-      throw new Error('Customer not found for this sale.');
+      throw new Error("Customer not found for this sale.");
     }
 
     // 1. Create the credit payment
@@ -293,19 +305,19 @@ export const createCreditPayment = async (saleId, paymentData, userId) => {
 
     // 3. Update the sale's payment status
     const newTotalPaid = totalPaid + amount;
-    let newPaymentStatus = 'PARTIALLY_PAID';
+    let newPaymentStatus = "PARTIALLY_PAID";
     let newStatus = sale.status;
     if (newTotalPaid >= sale.total) {
-      newPaymentStatus = 'PAID';
-      newStatus = 'completed';
+      newPaymentStatus = "PAID";
+      newStatus = "completed";
     }
 
     await tx.sale.update({
       where: { id: saleId },
-      data: { 
+      data: {
         paymentStatus: newPaymentStatus,
-        status: newStatus
-       },
+        status: newStatus,
+      },
     });
 
     return payment;
@@ -315,14 +327,14 @@ export const createCreditPayment = async (saleId, paymentData, userId) => {
 export const getPaymentsForSale = async (saleId) => {
   return await prisma.creditPayment.findMany({
     where: { saleId },
-    orderBy: { paymentDate: 'desc' },
+    orderBy: { paymentDate: "desc" },
   });
 };
 
 export const getAllCreditPayments = async () => {
   return await prisma.creditPayment.findMany({
-    include:{ customer: true },
-    orderBy: { paymentDate: 'desc' },
+    include: { customer: true },
+    orderBy: { paymentDate: "desc" },
   });
 };
 
@@ -357,12 +369,23 @@ export const getSalesSummary = async () => {
     },
   });
 
+  const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+  const endOfDay = new Date(now.setHours(23, 59, 59, 999));
+
+  const dailySales = sales.filter(
+    (sale) =>
+      new Date(sale.createdAt) >= startOfDay &&
+      new Date(sale.createdAt) <= endOfDay
+  );
+
   const currentMonthSales = sales.filter(
-    (sale) => sale.createdAt >= firstDayOfMonth && sale.createdAt <= lastDayOfMonth
+    (sale) =>
+      sale.createdAt >= firstDayOfMonth && sale.createdAt <= lastDayOfMonth
   );
 
   const lastMonthSales = sales.filter(
-    (sale) => sale.createdAt >= firstDayOfLastMonth && sale.createdAt < firstDayOfMonth
+    (sale) =>
+      sale.createdAt >= firstDayOfLastMonth && sale.createdAt < firstDayOfMonth
   );
 
   const totalSalesThisMonth = currentMonthSales.reduce(
@@ -378,41 +401,79 @@ export const getSalesSummary = async () => {
   const daysInMonth = lastDayOfMonth.getDate();
   const averageDailySales = totalSalesThisMonth / daysInMonth;
 
-  // Weekly Sales Aggregation (last 4 weeks)
-  const weeklySalesList = [];
-  for (let i = 0; i < 4; i++) {
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay() - (7 * i));
-    startOfWeek.setHours(0, 0, 0, 0);
+  const startOfCurrentWeek = new Date(now);
+  startOfCurrentWeek.setDate(now.getDate() - now.getDay()); // Sunday as the start of the week
+  startOfCurrentWeek.setHours(0, 0, 0, 0);
 
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
+  const endOfCurrentWeek = new Date(startOfCurrentWeek);
+  endOfCurrentWeek.setDate(startOfCurrentWeek.getDate() + 6);
+  endOfCurrentWeek.setHours(23, 59, 59, 999);
 
-    const salesInWeek = await prisma.sale.findMany({
+  const startOfLastWeek = new Date(startOfCurrentWeek);
+  startOfLastWeek.setDate(startOfCurrentWeek.getDate() - 7);
+
+  const endOfLastWeek = new Date(endOfCurrentWeek);
+  endOfLastWeek.setDate(endOfCurrentWeek.getDate() - 7);
+
+  const salesThisWeek = sales.filter(
+    (sale) =>
+      sale.createdAt >= startOfCurrentWeek && sale.createdAt <= endOfCurrentWeek
+  );
+
+  const salesLastWeek = sales.filter(
+    (sale) =>
+      sale.createdAt >= startOfLastWeek && sale.createdAt < startOfCurrentWeek
+  );
+
+  const totalSalesThisWeek = salesThisWeek.reduce(
+    (sum, sale) => sum + sale.total,
+    0
+  );
+
+  const totalSalesLastWeek = salesLastWeek.reduce(
+    (sum, sale) => sum + sale.total,
+    0
+  );
+
+  // Daily Sales Aggregation (last 14 days)
+  const dailySalesList = [];
+  for (let i = 0; i < 14; i++) {
+    const date = new Date(now);
+    date.setDate(now.getDate() - i);
+    date.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const salesInDay = await prisma.sale.findMany({
       where: {
         createdAt: {
-          gte: startOfWeek,
-          lte: endOfWeek,
+          gte: date,
+          lte: endOfDay,
         },
       },
     });
 
-    const totalWeeklySales = salesInWeek.reduce((sum, sale) => sum + sale.total, 0);
+    const totalDailySales = salesInDay.reduce(
+      (sum, sale) => sum + sale.total,
+      0
+    );
 
-    weeklySalesList.unshift({
-      weekStart: startOfWeek.toISOString().split('T')[0],
-      total: totalWeeklySales,
+    dailySalesList.unshift({
+      date: date.toISOString().split("T")[0],
+      total: totalDailySales,
     });
   }
 
   return {
+    totalDailySales: dailySales.reduce((sum, sale) => sum + sale.total, 0),
     totalSalesThisMonth,
     averageDailySales,
     salesGrowth: {
-      current: totalSalesThisMonth,
-      previous: totalSalesLastMonth,
+      current: totalSalesThisWeek,
+      previous: totalSalesLastWeek,
     },
-    weeklySalesList,
+    dailySalesList,
   };
+
 };

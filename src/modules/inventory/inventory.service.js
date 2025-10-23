@@ -126,45 +126,110 @@ export const deductInventoryForProduction = async (ingredients) => {
 };
 
 export const getInventorySummary = async () => {
-  const lowStockRawMaterials = await prisma.inventoryItem.findMany({
+  const lowStockItems = await prisma.inventoryItem.findMany({
     where: {
-      type: 'raw_material',
       currentQuantity: {
         lt: prisma.inventoryItem.fields.minLevel,
       },
-    }, select:{
-      id:true,
-      name:true,
-      minLevel:true
-    }
-  });
-
-  const lowStockSupplies = await prisma.inventoryItem.findMany({
-    where: {
-      type: 'supply',
-      currentQuantity: {
-        lt: prisma.inventoryItem.fields.minLevel,
+      NOT: {
+        currentQuantity: 0,
       },
-    }, select:{
-      id:true,
-      name:true,
-      minLevel:true
-    }
+    },
+    select: {
+      id: true,
+      name: true,
+      currentQuantity: true,
+      minLevel: true,
+      type: true,
+    },
   });
 
-  const outOfStockItems = await prisma.inventoryItem.count({
+  const outOfStockItems = await prisma.inventoryItem.findMany({
     where: {
       currentQuantity: {
         equals: 0,
       },
     },
+    select: {
+      id: true,
+      name: true,
+      currentQuantity: true,
+      minLevel: true,
+      type: true,
+    },
   });
 
-  
+  // Materials Used
+  const materialsUsed = await prisma.productionIngredientDeduction.findMany({
+    include: {
+      inventoryItem: { select: { name: true, unit: true } },
+      productionRun: { select: { product: { select: { name: true } }, quantityProduced: true } },
+    },
+    take: 5,
+  });
+
+  const formattedMaterialsUsed = materialsUsed.map(item => ({
+    materialName: item.inventoryItem.name,
+    amountDeducted: item.amountDeducted,
+    unit: item.inventoryItem.unit,
+    productName: item.productionRun.product.name,
+    quantityProduced: item.productionRun.quantityProduced,
+  }));
+
+  // Top Selling Products (last 5 days)
+  const fiveDaysAgo = new Date();
+  fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+  fiveDaysAgo.setHours(0, 0, 0, 0);
+
+  const topSellingProductsRaw = await prisma.saleItem.groupBy({
+    by: ['productId'],
+    _sum: {
+      quantity: true,
+    },
+    where: {
+      sale: {
+        createdAt: {
+          gte: fiveDaysAgo,
+        },
+      },
+    },
+    orderBy: {
+      _sum: {
+        quantity: 'desc',
+      },
+    },
+    take: 5, // Get top 5 products
+  });
+
+  const topSellingProducts = await Promise.all(
+    topSellingProductsRaw.map(async (item) => {
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId },
+        select: { name: true },
+      });
+      return {
+        productName: product ? product.name : 'Unknown Product',
+        totalQuantitySold: item._sum.quantity,
+      };
+    })
+  );
 
   return {
-    lowStockRawMaterials,
-    lowStockSupplies,
-    outOfStockItems,
+    lowStock: {
+      count: lowStockItems.length,
+      items: lowStockItems,
+    },
+    outOfStock: {
+      count: outOfStockItems.length,
+      items: outOfStockItems,
+    },
+    materialsUsed: {
+      count: formattedMaterialsUsed.length,
+      items: formattedMaterialsUsed,
+    },
+    topSellingProducts: {
+      count: topSellingProducts.length,
+      items: topSellingProducts,
+    },
   };
 };

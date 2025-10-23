@@ -12,7 +12,7 @@ const router = Router();
  *   description: User authentication and authorization
  */
 
-if (process.env.NODE_ENV === 'development') {
+
   /**
    * @swagger
    * /api/auth/register:
@@ -44,7 +44,7 @@ if (process.env.NODE_ENV === 'development') {
    *         description: User registered successfully.
    */
   router.post('/register', authController.register);
-}
+
 
 /**
  * @swagger

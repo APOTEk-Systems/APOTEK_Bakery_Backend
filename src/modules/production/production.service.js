@@ -248,60 +248,130 @@ export async function getProductionSummary() {
   const startOfWeek = new Date(today);
   startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday as the start of the week
 
-  const totalProductionRuns = await prisma.productionRun.count();
-  const totalQuantityProducedResult = await prisma.productionRun.aggregate({
-    _sum: {
-      quantityProduced: true,
+  // 1. Weekly Ingredient Usage
+  const weeklyIngredientDeductions = await prisma.productionIngredientDeduction.findMany({
+    where: {
+      productionRun: {
+        createdAt: {
+          gte: startOfWeek,
+        },
+      },
     },
-  });
-  const totalCostResult = await prisma.productionRun.aggregate({
-    _sum: {
-      cost: true,
+    include: {
+      inventoryItem: { select: { name: true, unit: true } },
     },
   });
 
-  // Daily Production
-  const dailyProductionResult = await prisma.productionRun.aggregate({
-    _sum: {
-      quantityProduced: true,
-    },
+  const weeklyIngredientUsageMap = new Map();
+  weeklyIngredientDeductions.forEach(deduction => {
+    const ingredientName = deduction.inventoryItem.name;
+    const unit = deduction.inventoryItem.unit;
+    const amount = deduction.amountDeducted;
+
+    if (weeklyIngredientUsageMap.has(ingredientName)) {
+      weeklyIngredientUsageMap.set(ingredientName, weeklyIngredientUsageMap.get(ingredientName) + amount);
+    } else {
+      weeklyIngredientUsageMap.set(ingredientName, amount);
+    }
+  });
+
+  const weeklyIngredientUsageList = Array.from(weeklyIngredientUsageMap.entries()).map(([name, quantity]) => ({
+    name,
+    quantity,
+  }));
+
+  // 2. Daily Production (aggregated products)
+  const dailyProductionRuns = await prisma.productionRun.findMany({
     where: {
       createdAt: {
         gte: today,
       },
     },
-  });
-
-  // Weekly Production
-  const weeklyProductionResult = await prisma.productionRun.aggregate({
-    _sum: {
-      quantityProduced: true,
-    },
-    where: {
-      createdAt: {
-        gte: startOfWeek,
-      },
+    include: {
+      product: { select: { name: true } },
     },
   });
 
-  // Weekly Production Cost
-  const weeklyProductionCostResult = await prisma.productionRun.aggregate({
-    _sum: {
-      cost: true,
-    },
+  const dailyProductionMap = new Map();
+  dailyProductionRuns.forEach(run => {
+    const productName = run.product.name;
+    const quantity = run.quantityProduced;
+
+    if (dailyProductionMap.has(productName)) {
+      dailyProductionMap.set(productName, dailyProductionMap.get(productName) + quantity);
+    } else {
+      dailyProductionMap.set(productName, quantity);
+    }
+  });
+
+  const dailyProductionList = Array.from(dailyProductionMap.entries()).map(([name, quantity]) => ({
+    productName: name,
+    quantityProduced: quantity,
+  }));
+
+  // 3. Production Vs Sales (Daily)
+  const dailySales = await prisma.saleItem.findMany({
     where: {
-      createdAt: {
-        gte: startOfWeek,
+      sale: {
+        createdAt: {
+          gte: today,
+        },
       },
     },
+    include: {
+      product: { select: { name: true } },
+    },
+  });
+
+  const dailySalesMap = new Map();
+  dailySales.forEach(item => {
+    const productName = item.product.name;
+    const quantity = item.quantity;
+
+    if (dailySalesMap.has(productName)) {
+      dailySalesMap.set(productName, dailySalesMap.get(productName) + quantity);
+    } else {
+      dailySalesMap.set(productName, quantity);
+    }
+  });
+
+  const productionVsSalesList = Array.from(dailyProductionMap.keys()).map(productName => {
+    const produced = dailyProductionMap.get(productName) || 0;
+    const sold = dailySalesMap.get(productName) || 0;
+    return {
+      productName,
+      produced,
+      sold,
+      difference: produced - sold,
+    };
+  });
+
+  // Add products that were sold but not produced today
+  Array.from(dailySalesMap.keys()).forEach(productName => {
+    if (!dailyProductionMap.has(productName)) {
+      const produced = 0;
+      const sold = dailySalesMap.get(productName) || 0;
+      productionVsSalesList.push({
+        productName,
+        produced,
+        sold,
+        difference: produced - sold,
+      });
+    }
   });
 
   return {
-   // totalProductionRuns,
-    //totalQuantityProduced: totalQuantityProducedResult._sum.quantityProduced || 0,
-    //totalProductionCost: totalCostResult._sum.cost || 0,
-    dailyProduction: dailyProductionResult._sum.quantityProduced || 0,
-    weeklyProduction: weeklyProductionResult._sum.quantityProduced || 0,
-    weeklyProductionCost: weeklyProductionCostResult._sum.cost || 0,
+    weeklyIngredientUsage: {
+      count: weeklyIngredientUsageList.length,
+      items: weeklyIngredientUsageList,
+    },
+    dailyProduction: {
+      count: dailyProductionList.length,
+      items: dailyProductionList,
+    },
+    productionVsSales: {
+      count: productionVsSalesList.length,
+      items: productionVsSalesList,
+    },
   };
 }
