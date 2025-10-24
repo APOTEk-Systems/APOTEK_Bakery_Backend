@@ -10,7 +10,15 @@ async function main(){
     }
   })
   console.log(allProducts)
+
+
+   const paj = await prisma.productAdj.findMany({
+  
+   })
+   console.log(paj)
 }
+
+
 
 main()
   .catch((e) => {
