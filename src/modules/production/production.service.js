@@ -265,18 +265,44 @@ export async function getProductionSummary() {
   const weeklyIngredientUsageMap = new Map();
   weeklyIngredientDeductions.forEach(deduction => {
     const ingredientName = deduction.inventoryItem.name;
+    const unit = deduction.inventoryItem.unit;
     const amount = deduction.amountDeducted;
 
     if (weeklyIngredientUsageMap.has(ingredientName)) {
-      weeklyIngredientUsageMap.set(ingredientName, weeklyIngredientUsageMap.get(ingredientName) + amount);
+        const existing = weeklyIngredientUsageMap.get(ingredientName);
+        weeklyIngredientUsageMap.set(ingredientName, {
+            quantity: existing.quantity + amount,
+            unit: unit,
+        });
     } else {
-      weeklyIngredientUsageMap.set(ingredientName, amount);
+        weeklyIngredientUsageMap.set(ingredientName, { quantity: amount, unit: unit });
     }
   });
 
-  const weeklyIngredientUsageList = Array.from(weeklyIngredientUsageMap.entries()).map(([name, quantity]) => ({
+  let weeklyIngredientUsageList = Array.from(weeklyIngredientUsageMap.entries()).map(([name, data]) => ({
     name,
-    quantity,
+    quantity: data.quantity,
+    unit: data.unit,
+  }));
+
+  // Now, get the available quantity for each ingredient in the list
+  const ingredientNames = weeklyIngredientUsageList.map(item => item.name);
+  const inventoryItems = await prisma.inventoryItem.findMany({
+      where: {
+          name: {
+              in: ingredientNames
+          }
+      },
+      select: {
+          name: true,
+          currentQuantity: true
+      }
+  });
+  const inventoryQuantityMap = new Map(inventoryItems.map(item => [item.name, item.currentQuantity]));
+
+  weeklyIngredientUsageList = weeklyIngredientUsageList.map(item => ({
+      ...item,
+      available: inventoryQuantityMap.get(item.name) || 0
   }));
 
   // 2. Weekly Production (aggregated products)
@@ -287,7 +313,7 @@ export async function getProductionSummary() {
       },
     },
     include: {
-      product: { select: { name: true } },
+      product: { select: { name: true, batchSize: true } },
     },
   });
 
@@ -295,19 +321,29 @@ export async function getProductionSummary() {
   weeklyProductionRuns.forEach(run => {
     const productName = run.product.name;
     const quantity = run.quantityProduced;
+    const cost = run.cost;
+    const batchSize = run.product.batchSize;
 
     if (weeklyProductionMap.has(productName)) {
-      weeklyProductionMap.set(productName, weeklyProductionMap.get(productName) + quantity);
+      const existing = weeklyProductionMap.get(productName);
+      weeklyProductionMap.set(productName, {
+        quantity: existing.quantity + quantity,
+        cost: existing.cost + cost,
+        batchSize: batchSize, 
+      });
     } else {
-      weeklyProductionMap.set(productName, quantity);
+      weeklyProductionMap.set(productName, { quantity, cost, batchSize });
     }
   });
 
-  const weeklyProductionList = Array.from(weeklyProductionMap.entries()).map(([name, quantity, unit]) => ({
-    productName: name,
-    unit: unit,
-    quantityProduced: quantity,
-  }));
+  const weeklyProductionList = Array.from(weeklyProductionMap.entries()).map(([name, data]) => {
+    const costPerBatch = data.batchSize > 0 && data.quantity > 0 ? (data.cost / data.quantity) * data.batchSize : 0;
+    return {
+      productName: name,
+      quantityProduced: data.quantity,
+      cost: costPerBatch,
+    };
+  });
 
   // 3. Production Vs Sales (Weekly)
   const weeklySales = await prisma.saleItem.findMany({
@@ -338,7 +374,7 @@ export async function getProductionSummary() {
   const allProductNames = new Set([...weeklyProductionMap.keys(), ...weeklySalesMap.keys()]);
 
   const productionVsSalesList = Array.from(allProductNames).map(productName => {
-    const produced = weeklyProductionMap.get(productName) || 0;
+    const produced = weeklyProductionMap.get(productName)?.quantity || 0;
     const sold = weeklySalesMap.get(productName) || 0;
     return {
       productName,

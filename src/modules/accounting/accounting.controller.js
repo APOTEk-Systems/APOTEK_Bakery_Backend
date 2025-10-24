@@ -152,3 +152,13 @@ export const deleteExpenseCategory = async (req, res) => {
     res.status(404).json({ error: 'Expense category not found' });
   }
 };
+
+export const getProfitAndLossReport = async (req, res) => {
+  const report = await accountingService.getProfitAndLossReport(req.query);
+  res.json({ data: report });
+};
+
+export const getCashFlowReport = async (req, res) => {
+  const report = await accountingService.getCashFlowReport(req.query);
+  res.json({ data: report });
+};

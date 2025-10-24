@@ -3,7 +3,12 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main(){
-  const allProducts = await prisma.product.findMany()
+  const allProducts = await prisma.sale.findMany({
+    where:{
+      paymentStatus: 'UNPAID',
+      isCredit: true
+    }
+  })
   console.log(allProducts)
 }
 

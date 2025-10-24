@@ -22,6 +22,8 @@ router.delete('/expense-categories/:id', authMiddleware, authorize(['delete:expe
 
 // Report routes
 router.get('/reports', authMiddleware, authorize(['view:reports']), accountingController.getFinancialReport);
+router.get('/reports/profit-loss', authMiddleware, authorize(['view:reports', 'view:profit-loss']), accountingController.getProfitAndLossReport);
+router.get('/reports/cash-flow', authMiddleware, authorize(['view:reports, view:cash-flow']), accountingController.getCashFlowReport);
 
 // Summary
 router.get('/summary', authMiddleware, authorize(['view:expenses']), accountingController.getAccountingSummary);

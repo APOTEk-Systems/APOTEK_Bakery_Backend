@@ -214,6 +214,44 @@ export const getInventorySummary = async () => {
     })
   );
 
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const weeklyAdjustments = await prisma.inventoryAdjustment.findMany({
+    where: {
+      createdAt: {
+        gte: startOfWeek,
+      },
+    },
+    include: {
+      inventoryItem: {
+        select: {
+          name: true,
+          unit: true,
+        },
+      },
+      createdBy: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  const formattedAdjustments = weeklyAdjustments.map(adj => ({
+    itemName: adj.inventoryItem.name,
+    amount: adj.amount,
+    unit: adj.inventoryItem.unit,
+    reason: adj.reason,
+    createdBy: adj.createdBy.name,
+    createdAt: adj.createdAt,
+  }));
+
   return {
     lowStock: {
       count: lowStockItems.length,
@@ -230,6 +268,10 @@ export const getInventorySummary = async () => {
     topSellingProducts: {
       count: topSellingProducts.length,
       items: topSellingProducts,
+    },
+    weeklyAdjustments: {
+      count: formattedAdjustments.length,
+      items: formattedAdjustments,
     },
   };
 };

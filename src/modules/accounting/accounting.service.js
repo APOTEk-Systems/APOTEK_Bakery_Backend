@@ -1,4 +1,3 @@
-
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
@@ -399,6 +398,43 @@ export const getAccountingSummary = async () => {
   const grossProfitLastMonth = totalRevenueLastMonth - cogsLastMonth;
   const netProfitLastMonth = grossProfitLastMonth - totalOperatingExpensesLastMonth;
 
+  // --- 5. Outstanding Payments ---
+  const creditSalesCurrentMonth = await prisma.sale.findMany({
+    where: {
+      createdAt: { gte: currentMonthStart },
+      isCredit: true,
+      status: 'unpaid',
+    },
+    include: {
+      creditPayments: true,
+    },
+  });
+
+  const totalOutstandingCurrentMonth = creditSalesCurrentMonth.reduce((total, sale) => {
+    const totalPaid = sale.creditPayments.reduce((sum, p) => sum + p.amount, 0);
+    const outstandingAmount = sale.total - totalPaid;
+    return total + (outstandingAmount > 0 ? outstandingAmount : 0);
+  }, 0);
+
+
+  // Last Month
+  const creditSalesLastMonth = await prisma.sale.findMany({
+    where: {
+      createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
+      isCredit: true,
+      status: 'unpaid',
+    },
+    include: {
+      creditPayments: true,
+    },
+  });
+
+  const totalOutstandingLastMonth = creditSalesLastMonth.reduce((total, sale) => {
+    const totalPaid = sale.creditPayments.reduce((sum, p) => sum + p.amount, 0);
+    const outstandingAmount = sale.total - totalPaid;
+    return total + (outstandingAmount > 0 ? outstandingAmount : 0);
+  }, 0);
+
   return {
     currentMonth: {
       revenue: totalRevenueCurrentMonth,
@@ -406,6 +442,7 @@ export const getAccountingSummary = async () => {
       operatingExpenses: totalOperatingExpensesCurrentMonth,
       grossProfit: grossProfitCurrentMonth,
       netProfit: netProfitCurrentMonth,
+      outstandingPayments: totalOutstandingCurrentMonth,
     },
     lastMonth: {
       revenue: totalRevenueLastMonth,
@@ -413,11 +450,122 @@ export const getAccountingSummary = async () => {
       operatingExpenses: totalOperatingExpensesLastMonth,
       grossProfit: grossProfitLastMonth,
       netProfit: netProfitLastMonth,
+      outstandingPayments: totalOutstandingLastMonth,
     },
   };
 };
 
+export const getProfitAndLossReport = async (filters) => {
+  const dateWhere = {};
+  if (filters.dateFrom && filters.dateTo) {
+    dateWhere.createdAt = {
+      gte: new Date(filters.dateFrom),
+      lte: new Date(filters.dateTo),
+    };
+  }
+
+  // 1. Revenue from sales
+  const sales = await prisma.sale.aggregate({
+    where: dateWhere,
+    _sum: { total: true },
+  });
+  const totalRevenue = sales._sum.total || 0;
+
+  // 2. Cost of Goods Sold (COGS) from production runs
+  const productionRuns = await prisma.productionRun.findMany({
+    where: {
+      createdAt: dateWhere.createdAt,
+    },
+  });
+  const totalCOGS = productionRuns.reduce((sum, run) => sum + run.cost, 0);
+
+  // 3. Gross Profit
+  const grossProfit = totalRevenue - totalCOGS;
+
+  // 4. Operating Expenses
+  const expenses = await prisma.expense.findMany({
+    where: {
+      date: dateWhere.createdAt,
+    },
+  });
+  const totalOperatingExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+  // 5. Net Profit
+  const netProfit = grossProfit - totalOperatingExpenses;
+
+  return {
+    revenue: totalRevenue,
+    cogs: totalCOGS,
+    grossProfit: grossProfit,
+    operatingExpenses: totalOperatingExpenses,
+    netProfit: netProfit,
+  };
+};
+
+export const getCashFlowReport = async (filters) => {
+  const dateWhere = {};
+  if (filters.dateFrom && filters.dateTo) {
+    dateWhere.createdAt = {
+      gte: new Date(filters.dateFrom),
+      lte: new Date(filters.dateTo),
+    };
+  }
+
+  // --- Cash Inflows ---
+  // 1. Cash Sales (isCredit: false)
+  const cashSales = await prisma.sale.aggregate({
+    where: {
+      ...dateWhere,
+      isCredit: false,
+    },
+    _sum: { total: true },
+  });
+  const cashInflowFromCashSales = cashSales._sum.total || 0;
+
+  // 2. Payments from Credit Sales
+  const creditPayments = await prisma.creditPayment.aggregate({
+      where: {
+          paymentDate: dateWhere.createdAt,
+      },
+      _sum: { amount: true },
+  });
+  const cashInflowFromCreditPayments = creditPayments._sum.amount || 0;
+
+  const totalCashInflow = cashInflowFromCashSales + cashInflowFromCreditPayments;
 
 
+  // --- Cash Outflows ---
+  // 1. Expenses paid
+  const paidExpenses = await prisma.expense.findMany({
+    where: {
+      date: dateWhere.createdAt,
+      status: 'paid',
+    },
+  });
+  const cashOutflowForExpenses = paidExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
+  // 2. Purchase Orders paid
+  const purchaseOrders = await prisma.purchaseOrder.findMany({
+    where: {
+      createdAt: dateWhere.createdAt,
+    },
+  });
+  const cashOutflowForPurchases = purchaseOrders.reduce((sum, po) => sum + po.totalCost, 0);
 
+  const totalCashOutflow = cashOutflowForExpenses + cashOutflowForPurchases;
+  const netCashFlow = totalCashInflow - totalCashOutflow;
+
+  return {
+    cashInflows: {
+      fromCashSales: cashInflowFromCashSales,
+      fromCreditPayments: cashInflowFromCreditPayments,
+      total: totalCashInflow,
+    },
+    cashOutflows: {
+      forExpenses: cashOutflowForExpenses,
+      forPurchases: cashOutflowForPurchases,
+      total: totalCashOutflow,
+    },
+    netCashFlow: netCashFlow,
+  };
+};
