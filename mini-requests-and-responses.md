@@ -48,6 +48,108 @@
 }
 ```
 
+### `GET /api/sales` - Get all sales
+
+**Description:** This endpoint retrieves a paginated list of all sales. It can be filtered by a date range, credit status, and sale status.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/sales`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+- **Query Parameters:**
+  - `page` (optional): The page number to retrieve. Defaults to `1`.
+  - `limit` (optional): The number of items to retrieve per page. Defaults to `10`.
+  - `startDate` (optional): The start date of the date range to filter by.
+  - `endDate` (optional): The end date of the date range to filter by.
+  - `isCredit` (optional): Filter by credit status.
+  - `status` (optional): Filter by sale status.
+
+**Example URL with Query Parameters:**
+`http://localhost:3000/api/sales?page=1&limit=5&startDate=2025-09-01&endDate=2025-09-30`
+
+**Successful Response (Status: 201 Created):**
+```json
+{
+  "sale": {
+    "id": 50,
+    "customerId": 1,
+    "soldById": 2,
+    "isCredit": true,
+    "creditDueDate": null,
+    "total": 1000,
+    "status": "unpaid",
+    "createdAt": "2025-10-01T00:00:00.000Z",
+    "updatedAt": "2025-10-01T00:00:00.000Z",
+    "items": [
+      {
+        "id": 66,
+        "saleId": 50,
+        "productId": 1,
+        "quantity": 2,
+        "price": 500,
+        "notes": null
+      }
+    ]
+  },
+  "outstandingPayments": 1000
+}
+```
+
+### `POST /api/sales` - Create a new sale
+
+**Description:** This endpoint creates a new sale.
+
+**Request:**
+- **Method:** `POST`
+- **URL:** `http://localhost:3000/api/sales`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+- **Body:**
+  ```json
+  {
+    "customerId": 1,
+    "isCredit": true,
+    "total": 1000,
+    "items": [
+      {
+        "productId": 1,
+        "quantity": 2,
+        "price": 500
+      }
+    ]
+  }
+  ```
+
+**Successful Response (Status: 201 Created):**
+```json
+{
+  "sale": {
+    "id": 50,
+    "customerId": 1,
+    "soldById": 2,
+    "isCredit": true,
+    "creditDueDate": null,
+    "total": 1000,
+    "status": "unpaid",
+    "createdAt": "2025-10-01T00:00:00.000Z",
+    "updatedAt": "2025-10-01T00:00:00.000Z",
+    "items": [
+      {
+        "id": 66,
+        "saleId": 50,
+        "productId": 1,
+        "quantity": 2,
+        "price": 500,
+        "notes": null
+      }
+    ]
+  },
+  "outstandingPayments": 1000
+}
+```
+
 ### `POST /api/sales/:id/payments` - Create a new payment for a sale
 
 **Description:** This endpoint creates a new payment for a sale.
@@ -155,6 +257,171 @@
   }
 }
 ```
+
+## Customers Module
+
+### `GET /api/customers` - Get all customers
+
+**Description:** This endpoint retrieves a paginated list of all customers.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/customers`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+- **Query Parameters:**
+  - `page` (optional): The page number to retrieve. Defaults to `1`.
+  - `limit` (optional): The number of items to retrieve per page. Defaults to `10`.
+
+**Successful Response (Status: 200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "name": "irene",
+    "email": "irene@gmail.com",
+    "phone": "+255762559849",
+    "address": null,
+    "status": "active",
+    "isCredit": true,
+    "creditLimit": 1000000,
+    "currentCredit": 500,
+    "loyaltyPoints": 0,
+    "birthday": null,
+    "notes": null,
+    "createdAt": "2025-10-13T10:35:50.993Z",
+    "updatedAt": "2025-10-18T11:46:03.548Z",
+    "createdById": 1,
+    "updatedById": 1
+  }
+]
+```
+
+### `POST /api/customers` - Create a new customer
+
+**Description:** This endpoint creates a new customer.
+
+**Request:**
+- **Method:** `POST`
+- **URL:** `http://localhost:3000/api/customers`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+- **Body:**
+  ```json
+  {
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1234567890",
+    "address": "123 Main St",
+    "isCredit": false
+  }
+  ```
+
+**Successful Response (Status: 201 Created):**
+```json
+{
+  "id": 2,
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "phone": "+1234567890",
+  "address": "123 Main St",
+  "status": "active",
+  "isCredit": false,
+  "creditLimit": null,
+  "currentCredit": null,
+  "loyaltyPoints": null,
+  "birthday": null,
+  "notes": null,
+  "createdAt": "2025-10-23T10:00:00.000Z",
+  "updatedAt": "2025-10-23T10:00:00.000Z",
+  "createdById": 1,
+  "updatedById": 1
+}
+```
+
+### `GET /api/customers/:id` - Get a single customer
+
+**Description:** This endpoint retrieves a single customer by its ID.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/customers/1`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "id": 1,
+  "name": "irene",
+  "email": "irene@gmail.com",
+  "phone": "+255762559849",
+  "address": null,
+  "status": "active",
+  "isCredit": true,
+  "creditLimit": 1000000,
+  "currentCredit": 500,
+  "loyaltyPoints": 0,
+  "birthday": null,
+  "notes": null,
+  "createdAt": "2025-10-13T10:35:50.993Z",
+  "updatedAt": "2025-10-18T11:46:03.548Z",
+  "createdById": 1,
+  "updatedById": 1
+}
+```
+
+### `PUT /api/customers/:id` - Update a customer
+
+**Description:** This endpoint updates a customer.
+
+**Request:**
+- **Method:** `PUT`
+- **URL:** `http://localhost:3000/api/customers/1`
+- **Headers:**
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+- **Body:**
+  ```json
+  {
+    "address": "456 Oak Ave"
+  }
+  ```
+
+**Successful Response (Status: 200 OK):**
+```json
+{
+  "id": 1,
+  "name": "irene",
+  "email": "irene@gmail.com",
+  "phone": "+255762559849",
+  "address": "456 Oak Ave",
+  "status": "active",
+  "isCredit": true,
+  "creditLimit": 1000000,
+  "currentCredit": 500,
+  "loyaltyPoints": 0,
+  "birthday": null,
+  "notes": null,
+  "createdAt": "2025-10-13T10:35:50.993Z",
+  "updatedAt": "2025-10-23T10:05:00.000Z",
+  "createdById": 1,
+  "updatedById": 1
+}
+```
+
+### `DELETE /api/customers/:id` - Delete a customer
+
+**Description:** This endpoint deletes a customer by its ID.
+
+**Request:**
+- **Method:** `DELETE`
+- **URL:** `http://localhost:3000/api/customers/1`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+
+**Successful Response (Status: 204 No Content):**
 
 ## Purchases Module
 

@@ -265,7 +265,6 @@ export async function getProductionSummary() {
   const weeklyIngredientUsageMap = new Map();
   weeklyIngredientDeductions.forEach(deduction => {
     const ingredientName = deduction.inventoryItem.name;
-    const unit = deduction.inventoryItem.unit;
     const amount = deduction.amountDeducted;
 
     if (weeklyIngredientUsageMap.has(ingredientName)) {
@@ -280,11 +279,11 @@ export async function getProductionSummary() {
     quantity,
   }));
 
-  // 2. Daily Production (aggregated products)
-  const dailyProductionRuns = await prisma.productionRun.findMany({
+  // 2. Weekly Production (aggregated products)
+  const weeklyProductionRuns = await prisma.productionRun.findMany({
     where: {
       createdAt: {
-        gte: today,
+        gte: startOfWeek,
       },
     },
     include: {
@@ -292,29 +291,30 @@ export async function getProductionSummary() {
     },
   });
 
-  const dailyProductionMap = new Map();
-  dailyProductionRuns.forEach(run => {
+  const weeklyProductionMap = new Map();
+  weeklyProductionRuns.forEach(run => {
     const productName = run.product.name;
     const quantity = run.quantityProduced;
 
-    if (dailyProductionMap.has(productName)) {
-      dailyProductionMap.set(productName, dailyProductionMap.get(productName) + quantity);
+    if (weeklyProductionMap.has(productName)) {
+      weeklyProductionMap.set(productName, weeklyProductionMap.get(productName) + quantity);
     } else {
-      dailyProductionMap.set(productName, quantity);
+      weeklyProductionMap.set(productName, quantity);
     }
   });
 
-  const dailyProductionList = Array.from(dailyProductionMap.entries()).map(([name, quantity]) => ({
+  const weeklyProductionList = Array.from(weeklyProductionMap.entries()).map(([name, quantity, unit]) => ({
     productName: name,
+    unit: unit,
     quantityProduced: quantity,
   }));
 
-  // 3. Production Vs Sales (Daily)
-  const dailySales = await prisma.saleItem.findMany({
+  // 3. Production Vs Sales (Weekly)
+  const weeklySales = await prisma.saleItem.findMany({
     where: {
       sale: {
         createdAt: {
-          gte: today,
+          gte: startOfWeek,
         },
       },
     },
@@ -323,21 +323,23 @@ export async function getProductionSummary() {
     },
   });
 
-  const dailySalesMap = new Map();
-  dailySales.forEach(item => {
+  const weeklySalesMap = new Map();
+  weeklySales.forEach(item => {
     const productName = item.product.name;
     const quantity = item.quantity;
 
-    if (dailySalesMap.has(productName)) {
-      dailySalesMap.set(productName, dailySalesMap.get(productName) + quantity);
+    if (weeklySalesMap.has(productName)) {
+      weeklySalesMap.set(productName, weeklySalesMap.get(productName) + quantity);
     } else {
-      dailySalesMap.set(productName, quantity);
+      weeklySalesMap.set(productName, quantity);
     }
   });
 
-  const productionVsSalesList = Array.from(dailyProductionMap.keys()).map(productName => {
-    const produced = dailyProductionMap.get(productName) || 0;
-    const sold = dailySalesMap.get(productName) || 0;
+  const allProductNames = new Set([...weeklyProductionMap.keys(), ...weeklySalesMap.keys()]);
+
+  const productionVsSalesList = Array.from(allProductNames).map(productName => {
+    const produced = weeklyProductionMap.get(productName) || 0;
+    const sold = weeklySalesMap.get(productName) || 0;
     return {
       productName,
       produced,
@@ -346,28 +348,15 @@ export async function getProductionSummary() {
     };
   });
 
-  // Add products that were sold but not produced today
-  Array.from(dailySalesMap.keys()).forEach(productName => {
-    if (!dailyProductionMap.has(productName)) {
-      const produced = 0;
-      const sold = dailySalesMap.get(productName) || 0;
-      productionVsSalesList.push({
-        productName,
-        produced,
-        sold,
-        difference: produced - sold,
-      });
-    }
-  });
 
   return {
     weeklyIngredientUsage: {
       count: weeklyIngredientUsageList.length,
       items: weeklyIngredientUsageList,
     },
-    dailyProduction: {
-      count: dailyProductionList.length,
-      items: dailyProductionList,
+    weeklyProduction: {
+      count: weeklyProductionList.length,
+      items: weeklyProductionList,
     },
     productionVsSales: {
       count: productionVsSalesList.length,
