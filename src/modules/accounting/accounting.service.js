@@ -539,7 +539,6 @@ export const getCashFlowReport = async (filters) => {
   const paidExpenses = await prisma.expense.findMany({
     where: {
       date: dateWhere.createdAt,
-      status: 'paid',
     },
   });
   const cashOutflowForExpenses = paidExpenses.reduce((sum, expense) => sum + expense.amount, 0);
