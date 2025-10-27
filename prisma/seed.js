@@ -1,35 +1,29 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
-
-async function main(){
-  const supplies = await prisma.expenseCategory.findFirst({
-    where: { name: 'Utilities' }
-  })
-
-  console.log(supplies);
+// @ts-check
 
 
+const url = "https://api.sandbox.africastalking.com/version1/messaging/bulk";
+const apiKey = "atsk_29d24ccc9fe39765e0804ffddd74ccfe31fb473ce1570fdf6a0ef06db5eaabde934ac956"; // replace with your real API key
 
-  const adj = await prisma.productAdj.create({
-    data:{
-      prodId:1.
-      qty:10,
-      des:"ofinaerofnds",
-      date: new Date(),
-      created:1,
-      p
+async function sendBulkMessage() {
+  const payload = {
+    username: "sandbox",
+    message: "This is a sample message.",
+    senderId: "45440",
+    phoneNumbers: ["+255692641337"],
+  };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      apiKey,
     },
-  })
-  
+    body: JSON.stringify(payload),
+  });
 
+  const data = response;
+  console.log(data);
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+sendBulkMessage().catch(console.error);

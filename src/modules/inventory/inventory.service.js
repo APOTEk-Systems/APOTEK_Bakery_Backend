@@ -205,11 +205,25 @@ export const getInventorySummary = async () => {
     topSellingProductsRaw.map(async (item) => {
       const product = await prisma.product.findUnique({
         where: { id: item.productId },
-        select: { name: true },
+        select: { name: true, quantity: true },
       });
+
+      const salesCount = await prisma.saleItem.count({
+        where: {
+          productId: item.productId,
+          sale: {
+            createdAt: {
+              gte: fiveDaysAgo,
+            },
+          },
+        },
+      });
+
       return {
         productName: product ? product.name : 'Unknown Product',
         totalQuantitySold: item._sum.quantity,
+        numberOfSales: salesCount,
+        quantityOnHand: product ? product.quantity : 0,
       };
     })
   );

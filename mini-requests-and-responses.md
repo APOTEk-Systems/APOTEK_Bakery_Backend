@@ -146,7 +146,8 @@
       }
     ]
   },
-  "outstandingPayments": 1000
+  "outstandingBalance": 1000,
+  "paid": 4000
 }
 ```
 
@@ -199,6 +200,46 @@
     "saleId": 8,
     "paymentDate": "2025-10-18T11:46:03.210Z",
     "notes": null
+  }
+]
+```
+
+### `GET /api/sales/payments` - Get all payments
+
+**Description:** This endpoint retrieves a paginated list of all payments. It can be filtered by a date range.
+
+**Request:**
+- **Method:** `GET`
+- **URL:** `http://localhost:3000/api/sales/payments`
+- **Headers:**
+  - `Authorization: Bearer <YOUR_JWT_TOKEN>`
+- **Query Parameters:**
+  - `page` (optional): The page number to retrieve. Defaults to `1`.
+  - `limit` (optional): The number of items to retrieve per page. Defaults to `10`.
+  - `startDate` (optional): The start date of the date range to filter by.
+  - `endDate` (optional): The end date of the date range to filter by.
+
+**Example URL with Query Parameters:**
+`http://localhost:3000/api/sales/payments?page=1&limit=5&startDate=2025-09-01&endDate=2025-09-30`
+
+**Successful Response (Status: 200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "amount": 500,
+    "customerId": 1,
+    "saleId": 8,
+    "paymentDate": "2025-10-18T11:46:03.210Z",
+    "notes": null
+  },
+  {
+    "id": 2,
+    "amount": 1000,
+    "customerId": 2,
+    "saleId": 9,
+    "paymentDate": "2025-10-19T12:00:00.000Z",
+    "notes": "Cash payment"
   }
 ]
 ```
@@ -1297,15 +1338,58 @@
 **Successful Response (Status: 200 OK):**
 ```json
 {
-  "lowStockRawMaterials": [
-    {
-      "id": 1,
-      "name": "Flour",
-      "minLevel": 10
-    }
-  ],
-  "lowStockSupplies": [],
-  "outOfStockItems": 0
+  "lowStock": {
+    "count": 1,
+    "items": [
+      {
+        "id": 1,
+        "name": "Flour",
+        "currentQuantity": 5,
+        "minLevel": 10,
+        "type": "raw_material"
+      }
+    ]
+  },
+  "outOfStock": {
+    "count": 0,
+    "items": []
+  },
+  "materialsUsed": {
+    "count": 1,
+    "items": [
+      {
+        "materialName": "Flour",
+        "amountDeducted": 12,
+        "unit": "kg",
+        "productName": "Croissant",
+        "quantityProduced": 120
+      }
+    ]
+  },
+  "topSellingProducts": {
+    "count": 1,
+    "items": [
+      {
+        "productName": "Croissant",
+        "totalQuantitySold": 15,
+        "numberOfSales": 5,
+        "quantityOnHand": 100
+      }
+    ]
+  },
+  "weeklyAdjustments": {
+    "count": 1,
+    "items": [
+      {
+        "itemName": "Flour",
+        "amount": -5,
+        "unit": "kg",
+        "reason": "Damaged goods",
+        "createdBy": "Admin User",
+        "createdAt": "2025-10-21T12:00:00.000Z"
+      }
+    ]
+  }
 }
 ```
 
