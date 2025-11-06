@@ -31,6 +31,7 @@ async function generateUniqueLoginCode() {
 export const getAllUsers = async () => {
   const users = await prisma.user.findMany({
     include: { role: true },
+    orderBy: { name: 'asc' },
   });
   return users;
 };

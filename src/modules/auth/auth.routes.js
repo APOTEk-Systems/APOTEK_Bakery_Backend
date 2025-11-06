@@ -12,6 +12,7 @@ const router = Router();
  *   description: User authentication and authorization
  */
 
+  // This Route Should Be uncommented only in dev mode
 
   /**
    * @swagger
@@ -29,7 +30,8 @@ const router = Router();
    *               - email
    *               - password
    *               - name
-   *               - roleId
+   *               - roleName
+   *               - permissions
    *             properties:
    *               email:
    *                 type: string
@@ -37,13 +39,17 @@ const router = Router();
    *                 type: string
    *               name:
    *                 type: string
-   *               roleId:
-   *                 type: integer
+   *               roleName:
+   *                 type: string
+   *               permissons:
+   *                 type: array
+   *                 items:
+   *                   type: string
    *     responses:
    *       201:
    *         description: User registered successfully.
    */
-  router.post('/register', authController.register);
+ // router.post('/register', authController.register);
 
 
 /**

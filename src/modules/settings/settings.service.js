@@ -48,7 +48,7 @@ export async function createAdjustmentReason(data) {
 }
 
 export async function getAdjustmentReasons() {
-    return prisma.adjustmentReason.findMany({});
+    return prisma.adjustmentReason.findMany({orderBy: { name: 'asc' }});
 
 }
 

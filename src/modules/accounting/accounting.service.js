@@ -109,8 +109,14 @@ export const addExpenseCategory = async (expenseCategoryData) => {
  * @memberof AccountingService
  */
 export const getExpenseCategories = async () => {
-  return await prisma.expenseCategory.findMany();
+  const categories = await prisma.expenseCategory.findMany();
+  
+  // Case-insensitive alphabetical order
+  return categories.sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  );
 };
+
 
 /**
  * Retrieves a single expense category by its ID.
