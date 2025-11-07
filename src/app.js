@@ -59,8 +59,20 @@ app.use('/api/settings', settingsModule);
 app.use('/api/suppliers', supplierModule);
 app.use('/api/dashboard', dashboardModule);
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const swaggerAssetPath = swaggerUiDist.getAbsoluteFSPath();
+app.use('/api-docs-assets', express.static(swaggerAssetPath));
 
+// Use Swagger UI with local assets
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customCssUrl: '/api-docs-assets/swagger-ui.css',
+    customJs: '/api-docs-assets/swagger-ui-bundle.js',
+    customfavIcon: '/api-docs-assets/favicon-32x32.png',
+    customSiteTitle: 'My API Docs',
+  })
+);
 
 
 export default app;
