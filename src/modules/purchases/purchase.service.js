@@ -135,6 +135,11 @@ export const getAllGoodsReceipts = async ({
           supplier: true,
         },
       },
+      createdBy: {
+        select: {
+          name: true,
+        },
+      },
     },
     orderBy: {
       receivedDate: 'desc',
@@ -149,6 +154,8 @@ export const getAllGoodsReceipts = async ({
     ...gr,
     supplierName: gr.purchaseOrder.supplier.name,
     total: gr.purchaseOrder.totalCost,
+    createdByName: gr.createdBy.name,
+    createdBy:undefined,
   }));
 
   return { goodsReceipts: formattedGoodsReceipts, total };

@@ -27,7 +27,8 @@
     "mysql2": "^3.14.5",
     "prisma": "^6.16.1",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "swagger-ui-dist": "^5.17.14"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

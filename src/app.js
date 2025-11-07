@@ -20,6 +20,7 @@ import adjustmentsModule from './modules/adjustments/index.js';
 import dashboardModule from './modules/dashboard/index.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './swagger.js';
+import swaggerUiDist from 'swagger-ui-dist';
 
 const app = express();
 
@@ -58,7 +59,20 @@ app.use('/api/settings', settingsModule);
 app.use('/api/suppliers', supplierModule);
 app.use('/api/dashboard', dashboardModule);
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const swaggerUiAssetPath = swaggerUiDist.getAbsoluteFSPath();
+
+app.use('/api-docs', express.static(swaggerUiAssetPath));
+
+app.get('/api-docs/swagger.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(null, {
+  swaggerOptions: {
+    url: '/api-docs/swagger.json',
+  },
+}));
 
 
 

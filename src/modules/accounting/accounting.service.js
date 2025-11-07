@@ -54,7 +54,7 @@ export const createExpense = async (expenseData) => {
     const date = new Date(expenseData.date).toLocaleDateString('en-GB');
     expenseData.notes = `${category.name} expense for ${date}`;
   }
-  return await prisma.expense.create({ data: expenseData });
+  return await prisma.expense.create({ data: {...expenseData, updatedById:expenseData.createdById} });
 };
 
 /**
@@ -331,6 +331,11 @@ export const getExpensesList = async (filters) => {
     where,
     include: {
       expenseCategory: true,
+      updatedBy: {
+        select: {
+          name: true,
+        },
+      },
     },
     orderBy:{
       date: 'desc',
