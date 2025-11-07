@@ -332,6 +332,9 @@ export const getExpensesList = async (filters) => {
     include: {
       expenseCategory: true,
     },
+    orderBy:{
+      date: 'desc',
+    }
   });
 };
 
