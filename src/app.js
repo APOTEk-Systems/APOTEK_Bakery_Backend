@@ -59,22 +59,7 @@ app.use('/api/settings', settingsModule);
 app.use('/api/suppliers', supplierModule);
 app.use('/api/dashboard', dashboardModule);
 
-const swaggerUiAssetPath = swaggerUiDist.getAbsoluteFSPath();
-
-app.use('/api-docs', express.static(swaggerUiAssetPath));
-
-app.get('/api-docs/swagger.json', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpec);
-});
-
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(null, {
-  swaggerOptions: {
-    url: '/api-docs/swagger.json',
-  },
-  customCssUrl: '/api-docs/swagger-ui.css',
-  customJs: '/api-docs/swagger-ui-bundle.js',
-}));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
 
