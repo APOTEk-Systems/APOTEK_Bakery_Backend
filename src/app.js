@@ -72,6 +72,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(null, {
   swaggerOptions: {
     url: '/api-docs/swagger.json',
   },
+  customCssUrl: '/api-docs/swagger-ui.css',
+  customJs: '/api-docs/swagger-ui-bundle.js',
 }));
 
 
