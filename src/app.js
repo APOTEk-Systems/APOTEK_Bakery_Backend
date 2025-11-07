@@ -59,18 +59,16 @@ app.use('/api/settings', settingsModule);
 app.use('/api/suppliers', supplierModule);
 app.use('/api/dashboard', dashboardModule);
 
-const swaggerAssetPath = swaggerUiDist.getAbsoluteFSPath();
-app.use('/api-docs-assets', express.static(swaggerAssetPath));
-
-// Use Swagger UI with local assets
 app.use(
   '/api-docs',
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec, {
-    customCssUrl: '/api-docs-assets/swagger-ui.css',
-    customJs: '/api-docs-assets/swagger-ui-bundle.js',
-    customfavIcon: '/api-docs-assets/favicon-32x32.png',
-    customSiteTitle: 'My API Docs',
+    // You can still pass custom options, but
+    // customCssUrl, customJs, and customfavIcon paths are handled internally
+    // to point to the correct bundled assets.
+    customSiteTitle: 'Pastry Pro API Documentation',
+    // Example of a custom CSS file path if you placed it in your public folder:
+    // customCssUrl: '/public/custom.css'
   })
 );
 
