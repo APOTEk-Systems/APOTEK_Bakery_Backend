@@ -227,6 +227,7 @@ export const getSaleById = async (id) => {
   if (!sale) return null;
 
   const totalPaid = sale.creditPayments.reduce((sum, p) => sum + p.amount, 0);
+  const outstandingBalance = sale.isCredit ? sale.total - totalPaid : 0;
 
   // Move product name into each item
   const itemsWithProductName = sale.items.map((item) => ({
@@ -239,6 +240,7 @@ export const getSaleById = async (id) => {
     ...sale,
     items: itemsWithProductName,
     paid: totalPaid,
+    outstandingBalance,
   };
 };
 
@@ -294,6 +296,14 @@ export const createCreditPayment = async (saleId, paymentData, userId) => {
         notes,
         saleId,
         customerId: sale.customerId,
+        receivedById: userId,
+      },
+      include: {
+        receivedBy: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 
@@ -327,13 +337,27 @@ export const createCreditPayment = async (saleId, paymentData, userId) => {
 export const getPaymentsForSale = async (saleId) => {
   return await prisma.creditPayment.findMany({
     where: { saleId },
+    include: {
+      receivedBy: {
+        select: {
+          name: true,
+        },
+      },
+    },
     orderBy: { paymentDate: "desc" },
   });
 };
 
 export const getAllCreditPayments = async () => {
   return await prisma.creditPayment.findMany({
-    include: { customer: true },
+    include: {
+      customer: true,
+      receivedBy: {
+        select: {
+          name: true,
+        },
+      },
+    },
     orderBy: { paymentDate: "desc" },
   });
 };

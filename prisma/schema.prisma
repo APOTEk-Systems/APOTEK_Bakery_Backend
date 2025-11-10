@@ -68,6 +68,7 @@ model User {
  role                        UserRole              @relation(fields: [roleId], references: [id])
  roleId                      Int
  refreshTokens               RefreshToken[]
+ processedCreditPayments     CreditPayment[]       @relation("CreditPaymentProcessedBy")
 }
  
 model RefreshToken {
@@ -124,12 +125,15 @@ model CreditPayment {
   saleId      Int
   paymentDate DateTime  @default(now())
   notes       String?
+  receivedById Int @default(1)
 
+  receivedBy  User      @relation("CreditPaymentProcessedBy", fields: [receivedById], references: [id])
   customer    Customer  @relation(fields: [customerId], references: [id])
   sale        Sale      @relation(fields: [saleId], references: [id])
 
   @@index([customerId])
   @@index([saleId])
+  @@index([receivedById])
 }
 
 
