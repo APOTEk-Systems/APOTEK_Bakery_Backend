@@ -7,8 +7,8 @@ const router = Router();
 router.get('/roles', authMiddleware, authorize(['view:users']), userController.getRoles);
 router.post('/roles', authMiddleware, authorize(['manage:roles']), userController.createNewRole);
 router.get('/roles/:id', authMiddleware, authorize(['view:users']), userController.getRoleById);
-router.put('/roles/:id', authMiddleware, authorize(['manage:roles']), userController.updateRole);
-router.delete('/roles/:id', authMiddleware, authorize(['manage:roles']), userController.deleteRole);
+router.put('/roles/:id', authMiddleware, authorize(['update:roles']), userController.updateRole);
+router.delete('/roles/:id', authMiddleware, authorize(['delete:roles']), userController.deleteRole);
 
 router.get('/', authMiddleware, authorize(['view:users']), userController.getUsers);
 router.post('/', authMiddleware, authorize(['create:users']), userController.createNewUser);

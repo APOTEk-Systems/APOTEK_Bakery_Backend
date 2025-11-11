@@ -253,7 +253,7 @@ router.delete('/orders/:id', authMiddleware, authorize(['delete:purchases']), pu
  *       200:
  *         description: Successful response
  */
-router.get('/receiving', authMiddleware, authorize(['view:purchases']), purchaseController.getGoodsReceipts);
+router.get('/receiving', authMiddleware, authorize(['view:receiving']), purchaseController.getGoodsReceipts);
 
 /**
  * @swagger
@@ -308,7 +308,7 @@ router.post('/receiving', authMiddleware, authorize(['receive:goods']), purchase
  *       200:
  *         description: Successful response
  */
-router.get('/receiving/:id', authMiddleware, authorize(['view:purchases']), purchaseController.getGoodsReceiptById);
+router.get('/receiving/:id', authMiddleware, authorize(['view:receving']), purchaseController.getGoodsReceiptById);
 
 /**
  * @swagger
