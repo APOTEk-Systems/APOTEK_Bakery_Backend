@@ -211,7 +211,7 @@ model PurchaseOrder {
 }
 
 
-model PurchaseOrderItem {
+model   PurchaseOrderItem {
  id                Int           @id @default(autoincrement())
  purchaseOrderId   Int
  quantity          Int

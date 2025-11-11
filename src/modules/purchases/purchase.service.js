@@ -384,6 +384,7 @@ export const getDetailedPurchases = async ({ startDate, endDate }) => {
     supplierName: item.purchaseOrder.supplier.name,
     itemName: item.inventoryItem.name,
     quantity: item.quantity,
+    unit:item.inventoryItem.unit,
     price: item.price,
     total: item.quantity * item.price,
   }));
