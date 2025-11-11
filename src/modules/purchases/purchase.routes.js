@@ -360,5 +360,31 @@ router.put('/receiving/:id', authMiddleware, authorize(['receive:goods']), purch
  */
 router.delete('/receiving/:id', authMiddleware, authorize(['delete:purchases']), purchaseController.deleteGoodsReceipt);
 
+/**
+ * @swagger
+ * /api/purchases/detailed:
+ *   get:
+ *     tags: [Purchases]
+ *     summary: Get detailed list of all purchased items
+ *     description: This endpoint retrieves a list of all individual items from all purchase orders, along with purchase details.
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: The start date of the date range to filter by.
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: The end date of the date range to filter by.
+ *     responses:
+ *       200:
+ *         description: Successful response
+ */
+router.get('/detailed', authMiddleware, authorize(['view:purchases']), purchaseController.getDetailedPurchases);
+
 
 export default router;

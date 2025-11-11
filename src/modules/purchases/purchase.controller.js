@@ -214,6 +214,16 @@ export const deleteGoodsReceipt = async (req, res) => {
   }
 };
 
+export const getDetailedPurchases = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const detailedPurchases = await purchaseService.getDetailedPurchases({ startDate, endDate });
+    res.json(detailedPurchases);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getPurchasesSummary = async (req, res) => {
   const summary = await purchaseService.getPurchaseSummary();
   res.json(summary);

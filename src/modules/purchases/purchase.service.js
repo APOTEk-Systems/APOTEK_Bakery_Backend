@@ -345,6 +345,50 @@ export const deleteGoodsReceipt = async (id) => {
   return await prisma.goodsReceipt.delete({ where: { id: parseInt(id) } });
 };
 
+export const getDetailedPurchases = async ({ startDate, endDate }) => {
+  const where = {};
+  if (startDate && endDate) {
+    where.purchaseOrder = {
+      createdAt: {
+        gte: new Date(startDate),
+        lte: new Date(endDate),
+      },
+    };
+  }
+
+  const purchaseOrderItems = await prisma.purchaseOrderItem.findMany({
+    where,
+    include: {
+      purchaseOrder: {
+        include: {
+          supplier: true,
+        },
+      },
+      inventoryItem: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: {
+      purchaseOrder: {
+        createdAt: 'desc',
+      },
+    },
+  });
+
+  return purchaseOrderItems.map((item) => ({
+    purchaseOrderId: item.purchaseOrderId,
+    purchaseOrderDate: item.purchaseOrder.createdAt,
+    status: item.purchaseOrder.status,
+    supplierName: item.purchaseOrder.supplier.name,
+    itemName: item.inventoryItem.name,
+    quantity: item.quantity,
+    price: item.price,
+    total: item.quantity * item.price,
+  }));
+};
+
 export const getPurchaseSummary = async () => {
   const now = new Date();
   const currentYear = now.getFullYear();
