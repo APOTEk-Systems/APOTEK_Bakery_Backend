@@ -2,9 +2,10 @@ import { Router } from "express";
 import {
   createRunHandler,
   updateRunHandler,
-  finalizeRunHandler,
+finalizeRunHandler,
   listRunsHandler,
   getRunHandler,
+  getDetailedProductsHandler,
 } from "./production.controller.js";
 import authMiddleware, { authorize } from '../../middleware/auth.middleware.js';
 
@@ -16,6 +17,19 @@ const router = Router();
  *   name: Production
  *   description: Production module
  */
+
+/**
+ * @swagger
+ * /api/production/detailed:
+ *   get:
+ *     tags: [Production]
+ *     summary: Get detailed product list with production cost and profit
+ *     description: This endpoint retrieves a list of all products with their calculated production cost and profit.
+ *     responses:
+ *       200:
+ *         description: Successful response
+ */
+router.get("/detailed", authMiddleware, authorize(['view:production']), getDetailedProductsHandler);
 
 /**
  * @swagger

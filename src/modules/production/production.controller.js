@@ -5,7 +5,17 @@ import {
   finalizeProductionRun,
   listProductionRuns,
   getProductionRunById,
+  getDetailedProducts,
 } from "./production.service.js";
+
+export async function getDetailedProductsHandler(req, res) {
+  try {
+    const products = await getDetailedProducts();
+    res.json(products);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}
 
 export async function createRunHandler(req, res) {
   try {

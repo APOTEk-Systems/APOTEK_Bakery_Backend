@@ -2,6 +2,34 @@ import { PrismaClient } from "@prisma/client";
 import { deductInventoryForProduction } from "../inventory/inventory.service.js";
 const prisma = new PrismaClient();
 
+export async function getDetailedProducts() {
+  const products = await prisma.product.findMany({
+    include: {
+      productRecipes: {
+        include: {
+          inventoryItem: true,
+        },
+      },
+    },
+  });
+
+  return products.map((product) => {
+    const batchCost = product.productRecipes.reduce((acc, recipe) => {
+      return acc + recipe.amountRequired * recipe.inventoryItem.cost;
+    }, 0);
+
+    const productionCost = product.batchSize > 0 ? batchCost / product.batchSize : 0;
+    const profit = product.price - productionCost;
+
+    return {
+      name: product.name,
+      price: product.price,
+      productionCost,
+      profit,
+    };
+  });
+}
+
 // Create a production run
 export async function createProductionRun({
   productId,
