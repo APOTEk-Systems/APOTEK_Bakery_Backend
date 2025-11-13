@@ -380,11 +380,46 @@ router.delete('/receiving/:id', authMiddleware, authorize(['delete:purchases']),
  *           type: string
  *           format: date
  *         description: The end date of the date range to filter by.
+ *       - in: query
+ *         name: supplier
+ *         schema:
+ *           type: string
+ *         description: Filter by supplier name.
  *     responses:
  *       200:
  *         description: Successful response
  */
 router.get('/detailed', authMiddleware, authorize(['view:purchases']), purchaseController.getDetailedPurchases);
+
+/**
+ * @swagger
+ * /api/purchases/detailed-receipts:
+ *   get:
+ *     tags: [Purchases]
+ *     summary: Get detailed list of all received items
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: The start date of the date range to filter by.
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: The end date of the date range to filter by.
+ *       - in: query
+ *         name: supplier
+ *         schema:
+ *           type: string
+ *         description: Filter by supplier name.
+ *     responses:
+ *       200:
+ *         description: Successful response
+ */
+router.get('/detailed-receipts', authMiddleware, authorize(['view:receiving']), purchaseController.getDetailedReceipts);
 
 
 export default router;

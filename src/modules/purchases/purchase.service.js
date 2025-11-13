@@ -321,7 +321,54 @@ export const deletePurchaseOrder = async (id) => {
  * @memberof PurchaseService
  */
 export const getGoodsReceiptById = async (id) => {
-  return await prisma.goodsReceipt.findUnique({ where: { id: parseInt(id) } });
+  const goodsReceipt = await prisma.goodsReceipt.findUnique({
+    where: { id: parseInt(id) },
+    include: {
+      createdBy: {
+        select: {
+          name: true,
+        },
+      },
+      purchaseOrder: {
+        include: {
+          supplier: {
+            select: {
+              name: true,
+            },
+          },
+          items: {
+            include: {
+              inventoryItem: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!goodsReceipt) {
+    return null;
+  }
+
+  const { createdBy, purchaseOrder, ...rest } = goodsReceipt;
+
+  const items = purchaseOrder.items.map(item => ({
+    name: item.inventoryItem.name,
+    quantity: item.quantity,
+    cost: item.price,
+    total: item.quantity * item.price,
+  }));
+
+  return {
+    ...rest,
+    supplierName: purchaseOrder.supplier.name,
+    receivedBy: createdBy.name,
+    items,
+  };
 };
 
 /**
@@ -345,13 +392,25 @@ export const deleteGoodsReceipt = async (id) => {
   return await prisma.goodsReceipt.delete({ where: { id: parseInt(id) } });
 };
 
-export const getDetailedPurchases = async ({ startDate, endDate }) => {
+export const getDetailedPurchases = async ({ startDate, endDate, supplier }) => {
   const where = {};
   if (startDate && endDate) {
     where.purchaseOrder = {
       createdAt: {
         gte: new Date(startDate),
         lte: new Date(endDate),
+      },
+    };
+  }
+
+  if (supplier) {
+    where.purchaseOrder = {
+      ...where.purchaseOrder,
+      supplier: {
+        name: {
+          contains: supplier,
+          mode: 'insensitive',
+        },
       },
     };
   }
@@ -388,6 +447,79 @@ export const getDetailedPurchases = async ({ startDate, endDate }) => {
     price: item.price,
     total: item.quantity * item.price,
   }));
+};
+
+export const getDetailedReceipts = async ({ startDate, endDate, supplier }) => {
+  const where = {};
+  if (startDate && endDate) {
+    where.receivedDate = {
+      gte: new Date(startDate),
+      lte: new Date(endDate),
+    };
+  }
+
+  if (supplier) {
+    where.purchaseOrder = {
+      supplier: {
+        name: {
+          contains: supplier,
+          mode: 'insensitive',
+        },
+      },
+    };
+  }
+
+  const goodsReceipts = await prisma.goodsReceipt.findMany({
+    where,
+    include: {
+      createdBy: {
+        select: {
+          name: true,
+        },
+      },
+      purchaseOrder: {
+        include: {
+          supplier: {
+            select: {
+              name: true,
+            },
+          },
+          items: { // PurchaseOrderItem
+            include: {
+              inventoryItem: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      receivedDate: 'desc',
+    },
+  });
+
+  const detailedReceipts = [];
+
+  for (const receipt of goodsReceipts) {
+    const supplierName = receipt.purchaseOrder.supplier.name;
+    const receivedDate = receipt.receivedDate;
+    const receivedBy = receipt.createdBy.name;
+
+    for (const item of receipt.purchaseOrder.items) {
+      detailedReceipts.push({
+        supplier: supplierName,
+        itemName: item.inventoryItem.name,
+        quantity: item.quantity, // Using ordered quantity as received quantity
+        receivedDate: receivedDate,
+        receivedBy: receivedBy,
+      });
+    }
+  }
+
+  return detailedReceipts;
 };
 
 export const getPurchaseSummary = async () => {

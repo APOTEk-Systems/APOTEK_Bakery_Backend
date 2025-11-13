@@ -216,9 +216,19 @@ export const deleteGoodsReceipt = async (req, res) => {
 
 export const getDetailedPurchases = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
-    const detailedPurchases = await purchaseService.getDetailedPurchases({ startDate, endDate });
+    const { startDate, endDate, supplier } = req.query;
+    const detailedPurchases = await purchaseService.getDetailedPurchases({ startDate, endDate, supplier });
     res.json(detailedPurchases);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getDetailedReceipts = async (req, res) => {
+  try {
+    const { startDate, endDate, supplier } = req.query;
+    const detailedReceipts = await purchaseService.getDetailedReceipts({ startDate, endDate, supplier });
+    res.json(detailedReceipts);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
