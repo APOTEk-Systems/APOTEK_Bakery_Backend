@@ -13,7 +13,17 @@ const prisma = new PrismaClient();
  * @memberof CustomerService
  */
 export const getAllCustomers = async () => {
-  return await prisma.customer.findMany({include: { sales: true }});
+const customers = await prisma.$queryRaw`
+  SELECT 
+    c.*, 
+    COALESCE(json_agg(s.*) FILTER (WHERE s.id IS NOT NULL), '[]') AS sales
+  FROM "Customer" c
+  LEFT JOIN "Sale" s ON s."customerId" = c.id
+  GROUP BY c.id
+  ORDER BY LOWER(c.name) ASC
+`;
+
+return customers;
 };
 
 /**

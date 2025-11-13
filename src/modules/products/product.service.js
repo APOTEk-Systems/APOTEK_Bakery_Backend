@@ -35,54 +35,8 @@ export const getAllProducts = async (page, limit, filter, orderBy) => {
         ];
     }
 
-    const products = await prisma.product.findMany({
-        skip,
-        take: limit,
-        where,
-        orderBy,
-        include: {
-            productionRuns: {
-                select: {
-                    cost: true,
-                    quantityProduced: true,
-                },
-            },
-            productRecipes: {
-                include: {
-                    inventoryItem: true,
-                },
-            },
-        },
-    });
-
-    const productsWithCost = products.map(product => {
-        let totalCostPerSingleUnit = 0;
-        let productionRunCount = 0;
-
-        product.productionRuns.forEach(run => {
-            if (run.quantityProduced > 0) {
-                totalCostPerSingleUnit += (run.cost / run.quantityProduced);
-                productionRunCount++;
-            }
-        });
-
-        const averageProductionCost = productionRunCount > 0
-            ? totalCostPerSingleUnit / productionRunCount
-            : 0;
-
-        // Remove productionRuns from the final output if not needed directly
-        const { productionRuns, ...productWithoutRuns } = product;
-
-        return {
-            ...productWithoutRuns,
-            averageProductionCost,
-            profit: product.price - averageProductionCost,
-        };
-    });
-
-    const total = await prisma.product.count({ where });
-
-    return productsWithCost.map(parseInstructions);
+    const products = await prisma.product.findMany()
+    return products.sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
 };
 
 /**

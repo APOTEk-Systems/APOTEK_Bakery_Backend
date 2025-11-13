@@ -2,7 +2,9 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export const getAllSuppliers = async () => {
-  return prisma.supplier.findMany();
+  const supplier = await prisma.supplier.findMany();
+
+  return supplier.sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
 };
 
 export const getPurchaseOrdersBySupplierId = async (supplierId) => {
