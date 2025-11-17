@@ -7,6 +7,18 @@ export async function createInventoryAdjustment({
   reason,
   createdById,
 }) {
+  const existingInventoryItem = await prisma.inventoryItem.findUnique({
+    where: { id: inventoryItemId },
+  });
+
+  if (!existingInventoryItem) {
+    throw new Error("Inventory item not found.");
+  }
+
+  if (amount < 0 && existingInventoryItem.currentQuantity + amount < 0) {
+    throw new Error("Adjustment amount cannot make inventory quantity less than zero.");
+  }
+
   const adjustment = await prisma.inventoryAdjustment.create({
     data: {
       inventoryItemId,
