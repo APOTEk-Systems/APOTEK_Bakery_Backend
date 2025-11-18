@@ -513,6 +513,8 @@ export const getDetailedReceipts = async ({ startDate, endDate, supplier }) => {
         supplier: supplierName,
         itemName: item.inventoryItem.name,
         quantity: item.quantity, // Using ordered quantity as received quantity
+        price: item.price,
+        total: item.quantity * item.price,
         receivedDate: receivedDate,
         receivedBy: receivedBy,
       });
