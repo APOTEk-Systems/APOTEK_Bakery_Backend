@@ -365,7 +365,7 @@ export async function getProductionSummary() {
   });
 
   const weeklyProductionList = Array.from(weeklyProductionMap.entries()).map(([name, data]) => {
-    const costPerBatch = data.batchSize > 0 && data.quantity > 0 ? (data.cost / data.quantity) * data.batchSize : 0;
+    const costPerBatch = data.batchSize > 0 && data.quantity > 0 ? data.cost  : 0;
     return {
       productName: name,
       quantityProduced: data.quantity,

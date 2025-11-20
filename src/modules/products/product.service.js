@@ -1,4 +1,4 @@
-//@ts-check
+
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
@@ -61,7 +61,8 @@ export const createProduct = async (productData, userId) => {
     data.productRecipes = {
       create: productRecipes.map(recipe => ({
         amountRequired: recipe.amountRequired,
-        inventoryItemId: recipe.inventoryItemId
+        inventoryItemId: recipe.inventoryItemId,
+        unit: recipe.unit
       }))
     };
   }
@@ -153,7 +154,8 @@ export const updateProduct = async (id, productData, userId) => {
     data.productRecipes = {
       create: productRecipes.map(recipe => ({
         amountRequired: recipe.amountRequired,
-        inventoryItemId: recipe.inventoryItemId
+        inventoryItemId: recipe.inventoryItemId,
+        unit: recipe.unit
       }))
     };
   }

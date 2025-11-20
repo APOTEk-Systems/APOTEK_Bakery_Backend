@@ -359,6 +359,7 @@ model ProductRecipe {
  inventoryItemId   Int
  amountRequired    Float
  inventoryItem     InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+ unit              String?
  product           Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
 
 

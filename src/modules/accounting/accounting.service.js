@@ -486,13 +486,13 @@ export const getProfitAndLossReport = async (filters) => {
   const totalRevenue = sales._sum.total || 0;
 
   // 2. Cost of Goods Sold (COGS) from production runs
-  const productionRuns = await prisma.productionRun.findMany({
+  const purchaseItems = await prisma.purchaseOrderItem.findMany({
     where: {
-      createdAt: dateWhere.createdAt,
+      purchaseOrder: { createdAt: dateWhere.createdAt },
     },
   });
-  const totalCOGS = productionRuns.reduce((sum, run) => sum + run.cost, 0);
-
+  const totalCOGS = purchaseItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  
   // 3. Gross Profit
   const grossProfit = totalRevenue - totalCOGS;
 
