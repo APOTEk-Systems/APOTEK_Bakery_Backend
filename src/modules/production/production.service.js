@@ -59,6 +59,7 @@ export async function createProductionRun({
   const ingredientsToDeduct = product.productRecipes.map(recipe => ({
     inventoryItemId: recipe.inventoryItemId,
     amountDeducted: (quantityProduced / product.batchSize) * recipe.amountRequired,
+    unit: recipe.unit,
   }));
 
   // Step 1: Deduct inventory and get the cost details from the inventory service
@@ -82,6 +83,7 @@ export async function createProductionRun({
         create: deductionResults.map(result => ({
           inventoryItemId: result.inventoryItemId,
           amountDeducted: result.amountDeducted,
+          unit: result.unit,
           cost: result.cost, // <-- This is the new field being populated
         })),
       },
@@ -181,7 +183,6 @@ export async function updateProductionRun(
   });
 }
 
-
 // Finalize a production run
 export async function finalizeProductionRun(runId, userId) {
   return prisma.productionRun.update({
@@ -261,7 +262,7 @@ export async function getProductionRunById(runId) {
     run.ingredientsDeducted = run.ingredientsDeducted.map((d) => ({
       name: d.inventoryItem.name,
       amountDeducted: d.amountDeducted,
-      unit: d.inventoryItem.unit,
+      unit: d.unit ,
       cost: d.amountDeducted * d.inventoryItem.cost,
     }));
   }

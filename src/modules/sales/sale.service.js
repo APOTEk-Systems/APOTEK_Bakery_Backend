@@ -45,18 +45,24 @@ export const getAllSales = async ({
     where.status = status;
   }
 
-  if (customerName) {
-    if (customerName.toLowerCase() === "cash") {
-      where.customerId = null;
-    } else {
-      where.customer = {
-        name: {
-          contains: customerName,
-          mode: "insensitive",
-        },
-      };
-    }
+ if (customerName) {
+  const search = customerName.trim();
+
+  if (search.toLowerCase() === "cash") {
+    where.customerId = null;
+  } else if (!isNaN(Number(search))) {
+    // Search by sale ID
+    where.id = Number(search);
+  } else {
+    // Search by customer name
+    where.customer = {
+      name: {
+        contains: search,
+        mode: "insensitive",
+      },
+    };
   }
+}
 
   const salesRaw = await prisma.sale.findMany({
     where,

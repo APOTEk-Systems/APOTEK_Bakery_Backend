@@ -1,5 +1,4 @@
-
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 /**
@@ -17,8 +16,8 @@ export const getAllInventoryItems = async (type) => {
   if (type) {
     where.type = type;
   }
- const items = await prisma.inventoryItem.findMany({ where });                                                 
- return items.sort((a, b) => a.name.localeCompare(b.name)); 
+  const items = await prisma.inventoryItem.findMany({ where });
+  return items.sort((a, b) => a.name.localeCompare(b.name));
 };
 
 /**
@@ -90,8 +89,9 @@ export const deductInventoryForProduction = async (ingredients) => {
   const results = [];
 
   for (const ingredient of ingredients) {
-    const { inventoryItemId, amountDeducted } = ingredient;
+    const { inventoryItemId, amountDeducted, unit } = ingredient;
 
+    console.log(unit, amountDeducted)
     const inventoryItem = await prisma.inventoryItem.findUnique({
       where: { id: inventoryItemId },
     });
@@ -101,11 +101,15 @@ export const deductInventoryForProduction = async (ingredients) => {
     }
 
     if (inventoryItem.currentQuantity < amountDeducted) {
-      throw new Error(`Not enough stock for inventory item ${inventoryItem.name}.`);
+      throw new Error(
+        `Not enough stock for inventory item ${inventoryItem.name}.`
+      );
     }
 
+   
     const costOfDeduction = inventoryItem.cost * amountDeducted;
-
+    
+    console.log('Cost of Deduction:', costOfDeduction);
     await prisma.inventoryItem.update({
       where: { id: inventoryItemId },
       data: {
@@ -119,6 +123,7 @@ export const deductInventoryForProduction = async (ingredients) => {
       inventoryItemId,
       amountDeducted,
       cost: costOfDeduction,
+      unit
     });
   }
 
@@ -163,12 +168,14 @@ export const getInventorySummary = async () => {
   const materialsUsed = await prisma.productionIngredientDeduction.findMany({
     include: {
       inventoryItem: { select: { name: true, unit: true } },
-      productionRun: { select: { product: { select: { name: true } }, quantityProduced: true } },
+      productionRun: {
+        select: { product: { select: { name: true } }, quantityProduced: true },
+      },
     },
     take: 5,
   });
 
-  const formattedMaterialsUsed = materialsUsed.map(item => ({
+  const formattedMaterialsUsed = materialsUsed.map((item) => ({
     materialName: item.inventoryItem.name,
     amountDeducted: item.amountDeducted,
     unit: item.inventoryItem.unit,
@@ -182,7 +189,7 @@ export const getInventorySummary = async () => {
   fiveDaysAgo.setHours(0, 0, 0, 0);
 
   const topSellingProductsRaw = await prisma.saleItem.groupBy({
-    by: ['productId'],
+    by: ["productId"],
     _sum: {
       quantity: true,
     },
@@ -195,7 +202,7 @@ export const getInventorySummary = async () => {
     },
     orderBy: {
       _sum: {
-        quantity: 'desc',
+        quantity: "desc",
       },
     },
     take: 5, // Get top 5 products
@@ -220,7 +227,7 @@ export const getInventorySummary = async () => {
       });
 
       return {
-        productName: product ? product.name : 'Unknown Product',
+        productName: product ? product.name : "Unknown Product",
         totalQuantitySold: item._sum.quantity,
         numberOfSales: salesCount,
         quantityOnHand: product ? product.quantity : 0,
@@ -253,11 +260,11 @@ export const getInventorySummary = async () => {
       },
     },
     orderBy: {
-      createdAt: 'desc',
+      createdAt: "desc",
     },
   });
 
-  const formattedAdjustments = weeklyAdjustments.map(adj => ({
+  const formattedAdjustments = weeklyAdjustments.map((adj) => ({
     itemName: adj.inventoryItem.name,
     amount: adj.amount,
     unit: adj.inventoryItem.unit,
