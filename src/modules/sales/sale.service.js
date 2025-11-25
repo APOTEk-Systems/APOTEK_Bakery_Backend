@@ -73,10 +73,12 @@ export const getAllSales = async ({
       soldBy: { select: { name: true } },
       creditPayments: true,
     },
-    orderBy: { createdAt: order },
+    orderBy: { createdAt: order ? order : "desc" },
     skip: (page - 1) * limit,
     take: limit,
   });
+
+  console.log(salesRaw);
 
   const total = await prisma.sale.count({ where });
 

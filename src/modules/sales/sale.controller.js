@@ -13,7 +13,7 @@ import * as saleService from './sale.service.js';
  * @memberof SaleController
  */
 export const getSales = async (req, res) => {
-  const { date, isCredit, status, endDate, startDate, customerName } = req.query;
+  const { date, isCredit, status, endDate, startDate, customerName, order } = req.query;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
 
