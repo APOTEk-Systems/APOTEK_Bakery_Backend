@@ -7,7 +7,11 @@ async function main() {
     const salesRaw = await prisma.sale.findMany({
         where: {
             status: "unpaid",
-            isCredit: true
+            isCredit: true,
+            createdAt:{
+                lt: new Date(new Date().setDate(new Date().getDate() - 30)),
+                gt: new Date(new Date().setDate(new Date().getDate() - 60))
+            }
         },
       include: {
         items: true,

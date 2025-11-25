@@ -553,20 +553,22 @@ export const generateProductionSummaryReport = async ({ date, endDate, startDate
   });
 
   const productionSummary = productionRuns.reduce((acc, run) => {
+    const date = run.createdAt.toISOString().split('T')[0];
     const productName = run.product.name;
-    if (!acc[productName]) {
-      acc[productName] = {
-        totalQuantity: 0,
-        unit: run.product.unit,
+    const key = `${date}-${productName}`; // Create a unique key for date and product
+
+    if (!acc[key]) {
+      acc[key] = {
+        date: date,
+        product: productName,
+        quantity: 0,
       };
     }
-    acc[productName].totalQuantity += run.quantityProduced;
+    acc[key].quantity += run.quantityProduced;
     return acc;
   }, {});
 
-  return {
-    productionSummary,
-  };
+  return Object.values(productionSummary);
 };
 
 /**
@@ -575,6 +577,7 @@ export const generateProductionSummaryReport = async ({ date, endDate, startDate
  * @returns {Promise<object>} A promise that resolves to the ingredient summary report data.
  * @memberof ReportingService
  */
+
 export const generateIngredientSummaryReport = async ({ date, endDate, startDate }) => {
   const where = {};
 
@@ -600,24 +603,27 @@ export const generateIngredientSummaryReport = async ({ date, endDate, startDate
     where,
     include: {
       inventoryItem: true,
+      productionRun: true,
     },
   });
 
   const ingredientSummary = ingredientUsages.reduce((acc, usage) => {
+    const date = usage.productionRun.createdAt.toISOString().split('T')[0];
     const ingredientName = usage.inventoryItem.name;
-    if (!acc[ingredientName]) {
-      acc[ingredientName] = {
-        totalQuantity: 0,
-        unit: usage.inventoryItem.unit,
+    const key = `${date}-${ingredientName}`; // Create a unique key for date and ingredient
+
+    if (!acc[key]) {
+      acc[key] = {
+        date: date,
+        ingredient: ingredientName,
+        quantity: 0,
       };
     }
-    acc[ingredientName].totalQuantity += usage.amountDeducted;
+    acc[key].quantity += usage.amountDeducted;
     return acc;
   }, {});
 
-  return {
-    ingredientSummary,
-  };
+  return Object.values(ingredientSummary);
 };
 
 /**
@@ -658,9 +664,10 @@ export const generateSalesSummaryReport = async ({ date, endDate, startDate }) =
     return acc;
   }, {});
 
-  return {
-    salesSummary,
-  };
+  return Object.entries(salesSummary).map(([date, data]) => ({
+    date,
+    total: data.totalSales,
+  }));
 };
 
 
