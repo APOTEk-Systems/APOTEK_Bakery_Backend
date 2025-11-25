@@ -49,7 +49,7 @@ const router = Router();
    *       201:
    *         description: User registered successfully.
    */
- // router.post('/register', authController.register);
+ router.post('/register', authController.register);
 
 
 /**

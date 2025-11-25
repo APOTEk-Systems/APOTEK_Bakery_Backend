@@ -26,7 +26,8 @@ export const registerUser = async (userData) => {
     create: { name: roleName, permissions },
   });
 
-  const newUser = await prisma.user.create({
+  try {
+      const newUser = await prisma.user.create({
     data: {
       email,
       password: hashedPassword,
@@ -34,11 +35,14 @@ export const registerUser = async (userData) => {
       role: {
         connect: { id: role.id },
       },
-      ...rest,
+      
     },
     select: { id: true, email: true },
   });
   return newUser;
+  } catch (error) {
+    console.log(error)
+  }
 };
 
 export const loginUser = async (email, password, res) => {
