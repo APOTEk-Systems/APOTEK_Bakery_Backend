@@ -33,7 +33,7 @@ export const getAllSales = async ({
   if (startDate && endDate) {
     where.createdAt = {
       gte: new Date(startDate),
-      lt: new Date(new Date(endDate).setDate(new Date(endDate).getDate() + 1)),
+      lt: new Date(new Date(endDate).setHours(23,59,59,999)),
     };
   }
 
@@ -353,6 +353,7 @@ export const getPaymentsForSale = async (saleId) => {
     orderBy: { paymentDate: "desc" },
   });
 };
+
 
 export const getAllCreditPayments = async () => {
   return await prisma.creditPayment.findMany({
