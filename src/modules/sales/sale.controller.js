@@ -26,6 +26,7 @@ export const getSales = async (req, res) => {
     startDate,
     page,
     customerName,
+    order
   });
   res.json(sales);
 };

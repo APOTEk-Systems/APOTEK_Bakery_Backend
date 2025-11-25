@@ -158,3 +158,36 @@ export const getPurchasesReport = async (req, res) => {
   const report = await reportingService.generatePurchasesReport(req.query);
   res.json({ data: report });
 };
+
+/**
+ * Responds with a production summary report.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @memberof ReportingController
+ */
+export const getProductionSummaryReport = async (req, res) => {
+  const report = await reportingService.generateProductionSummaryReport(req.query);
+  res.json({ data: report });
+};
+
+/**
+ * Responds with an ingredient summary report.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @memberof ReportingController
+ */
+export const getIngredientSummaryReport = async (req, res) => {
+  const report = await reportingService.generateIngredientSummaryReport(req.query);
+  res.json({ data: report });
+};
+
+/**
+ * Responds with a sales summary report.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @memberof ReportingController
+ */
+export const getSalesSummaryReport = async (req, res) => {
+  const report = await reportingService.generateSalesSummaryReport(req.query);
+  res.json({ data: report });
+};

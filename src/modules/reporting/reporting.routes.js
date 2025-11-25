@@ -19,4 +19,8 @@ router.get('/ingredient-purchase-trend', authMiddleware, authorize(['view:report
 router.get('/purchases-by-supplier', authMiddleware, authorize(['view:reports']), reportingController.getPurchasesBySupplierReport);
 router.get('/purchases', authMiddleware, authorize(['view:reports']), reportingController.getPurchasesReport);
 
+router.get('/production-summary', authMiddleware, authorize(['view:reports']), reportingController.getProductionSummaryReport);
+router.get('/ingredient-summary', authMiddleware, authorize(['view:reports']), reportingController.getIngredientSummaryReport);
+router.get('/sales-summary', authMiddleware, authorize(['view:reports']), reportingController.getSalesSummaryReport);
+
 export default router;

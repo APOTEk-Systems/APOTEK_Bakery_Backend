@@ -522,4 +522,145 @@ export const generateExpenseBreakdownReport = async (params) => {
   };
 };
 
+/**
+ * Generates a production summary report.
+ * @param {object} params - Parameters for the report (e.g., startDate, endDate).
+ * @returns {Promise<object>} A promise that resolves to the production summary report data.
+ * @memberof ReportingService
+ */
+export const generateProductionSummaryReport = async ({ date, endDate, startDate }) => {
+  const where = {};
+
+  if (date) {
+    where.createdAt = {
+      gte: new Date(date),
+      lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)),
+    };
+  }
+
+  if (startDate && endDate) {
+    where.createdAt = {
+      gte: new Date(startDate),
+      lt: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+    };
+  }
+
+  const productionRuns = await prisma.productionRun.findMany({
+    where,
+    include: {
+      product: true,
+    },
+  });
+
+  const productionSummary = productionRuns.reduce((acc, run) => {
+    const productName = run.product.name;
+    if (!acc[productName]) {
+      acc[productName] = {
+        totalQuantity: 0,
+        unit: run.product.unit,
+      };
+    }
+    acc[productName].totalQuantity += run.quantityProduced;
+    return acc;
+  }, {});
+
+  return {
+    productionSummary,
+  };
+};
+
+/**
+ * Generates an ingredient summary report.
+ * @param {object} params - Parameters for the report (e.g., startDate, endDate).
+ * @returns {Promise<object>} A promise that resolves to the ingredient summary report data.
+ * @memberof ReportingService
+ */
+export const generateIngredientSummaryReport = async ({ date, endDate, startDate }) => {
+  const where = {};
+
+  if (date) {
+    where.productionRun = {
+      createdAt: {
+        gte: new Date(date),
+        lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)),
+      },
+    };
+  }
+
+  if (startDate && endDate) {
+    where.productionRun = {
+      createdAt: {
+        gte: new Date(startDate),
+        lt: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+      },
+    };
+  }
+
+  const ingredientUsages = await prisma.productionIngredientDeduction.findMany({
+    where,
+    include: {
+      inventoryItem: true,
+    },
+  });
+
+  const ingredientSummary = ingredientUsages.reduce((acc, usage) => {
+    const ingredientName = usage.inventoryItem.name;
+    if (!acc[ingredientName]) {
+      acc[ingredientName] = {
+        totalQuantity: 0,
+        unit: usage.inventoryItem.unit,
+      };
+    }
+    acc[ingredientName].totalQuantity += usage.amountDeducted;
+    return acc;
+  }, {});
+
+  return {
+    ingredientSummary,
+  };
+};
+
+/**
+ * Generates a sales summary report.
+ * @param {object} params - Parameters for the report (e.g., startDate, endDate).
+ * @returns {Promise<object>} A promise that resolves to the sales summary report data.
+ * @memberof ReportingService
+ */
+export const generateSalesSummaryReport = async ({ date, endDate, startDate }) => {
+  const where = {};
+
+  if (date) {
+    where.createdAt = {
+      gte: new Date(date),
+      lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)),
+    };
+  }
+
+  if (startDate && endDate) {
+    where.createdAt = {
+      gte: new Date(startDate),
+      lt: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+    };
+  }
+
+  const sales = await prisma.sale.findMany({
+    where,
+  });
+
+  const salesSummary = sales.reduce((acc, sale) => {
+    const date = sale.createdAt.toISOString().split('T')[0];
+    if (!acc[date]) {
+      acc[date] = {
+        totalSales: 0,
+      };
+    }
+    acc[date].totalSales += sale.total;
+    return acc;
+  }, {});
+
+  return {
+    salesSummary,
+  };
+};
+
 

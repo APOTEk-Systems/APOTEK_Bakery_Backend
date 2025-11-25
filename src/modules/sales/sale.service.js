@@ -20,6 +20,7 @@ export const getAllSales = async ({
   startDate,
   page,
   customerName,
+  order
 }) => {
   const where = {};
 
@@ -72,7 +73,7 @@ export const getAllSales = async ({
       soldBy: { select: { name: true } },
       creditPayments: true,
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: order },
     skip: (page - 1) * limit,
     take: limit,
   });
