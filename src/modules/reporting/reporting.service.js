@@ -670,4 +670,50 @@ export const generateSalesSummaryReport = async ({ date, endDate, startDate }) =
   }));
 };
 
+/**
+ * Generates a credit sales summary report.
+ * @param {object} params - Parameters for the report (e.g., startDate, endDate).
+ * @returns {Promise<object>} A promise that resolves to the credit sales summary report data.
+ * @memberof ReportingService
+ */
+export const generateCreditSalesSummaryReport = async ({ date, endDate, startDate }) => {
+  const where = {
+    isCredit: true,
+  };
+
+  if (date) {
+    where.createdAt = {
+      gte: new Date(date),
+      lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)),
+    };
+  }
+
+  if (startDate && endDate) {
+    where.createdAt = {
+      gte: new Date(startDate),
+      lt: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+    };
+  }
+
+  const sales = await prisma.sale.findMany({
+    where,
+  });
+
+  const salesSummary = sales.reduce((acc, sale) => {
+    const date = sale.createdAt.toISOString().split('T')[0];
+    if (!acc[date]) {
+      acc[date] = {
+        totalSales: 0,
+      };
+    }
+    acc[date].totalSales += sale.total;
+    return acc;
+  }, {});
+
+  return Object.entries(salesSummary).map(([date, data]) => ({
+    date,
+    total: data.totalSales,
+  }));
+};
+
 
