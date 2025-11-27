@@ -202,3 +202,15 @@ export const getCreditSalesSummaryReport = async (req, res) => {
   const report = await reportingService.generateCreditSalesSummaryReport(req.query);
   res.json({ data: report });
 };
+
+
+/**
+ * Responds with a credit sales summary report.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @memberof ReportingController
+ */
+export const getCashSalesSummaryReport = async (req, res) => {
+  const report = await reportingService.generateCashSalesSummaryReport(req.query);
+  res.json({ data: report });
+};
