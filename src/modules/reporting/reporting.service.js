@@ -607,21 +607,33 @@ export const generateIngredientSummaryReport = async ({ date, endDate, startDate
     },
   });
 
-  const ingredientSummary = ingredientUsages.reduce((acc, usage) => {
-    const date = usage.productionRun.createdAt.toISOString().split('T')[0];
-    const ingredientName = usage.inventoryItem.name;
-    const key = `${date}-${ingredientName}`; // Create a unique key for date and ingredient
+ const ingredientSummary = ingredientUsages.reduce((acc, usage) => {
+  const date = usage.productionRun.createdAt.toISOString().split('T')[0];
+  const ingredientName = usage.inventoryItem.name;
+  const key = `${date}-${ingredientName}`;
+  const unit = usage.inventoryItem.unit;
 
-    if (!acc[key]) {
-      acc[key] = {
-        date: date,
-        ingredient: ingredientName,
-        quantity: 0,
-      };
-    }
-    acc[key].quantity += usage.amountDeducted;
-    return acc;
-  }, {});
+  if (!acc[key]) {
+    acc[key] = {
+      date: date,
+      ingredient: ingredientName,
+      quantity: 0,
+      unit: unit, // keep unit if needed
+    };
+  }
+
+  // apply conversion
+  let qty = usage.amountDeducted;
+
+  if (unit === "kg" || unit === "l") {
+    qty = qty / 1000; // convert grams → kg or ml → liters
+  }
+
+  acc[key].quantity += qty;
+
+  return acc;
+}, {});
+
 
   return Object.values(ingredientSummary);
 };
