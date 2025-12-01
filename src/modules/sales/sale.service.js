@@ -78,7 +78,7 @@ export const getAllSales = async ({
     take: limit,
   });
 
-  console.log(salesRaw);
+ // console.log(salesRaw);
 
   const total = await prisma.sale.count({ where });
 
