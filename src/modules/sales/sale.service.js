@@ -33,7 +33,7 @@ export const getAllSales = async ({
 
   if (startDate && endDate) {
     where.createdAt = {
-      gte: new Date(startDate),
+      gte: new Date(new Date(startDate).setHours(0,0,0,0)),
       lt: new Date(new Date(endDate).setHours(23,59,59,999)),
     };
   }
