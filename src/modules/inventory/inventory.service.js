@@ -91,7 +91,7 @@ export const deductInventoryForProduction = async (ingredients) => {
   for (const ingredient of ingredients) {
     const { inventoryItemId, amountDeducted, unit } = ingredient;
 
-    console.log(unit, amountDeducted)
+    //console.log(unit, amountDeducted)
     const inventoryItem = await prisma.inventoryItem.findUnique({
       where: { id: inventoryItemId },
     });
@@ -109,7 +109,7 @@ export const deductInventoryForProduction = async (ingredients) => {
    
     const costOfDeduction = inventoryItem.cost * amountDeducted;
     
-    console.log('Cost of Deduction:', costOfDeduction);
+   // console.log('Cost of Deduction:', costOfDeduction);
     await prisma.inventoryItem.update({
       where: { id: inventoryItemId },
       data: {

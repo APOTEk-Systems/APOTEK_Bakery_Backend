@@ -19,7 +19,7 @@ export async function getDetailedProductsHandler(req, res) {
 
 export async function createRunHandler(req, res) {
   try {
-    console.log(req.user.id)
+   // console.log(req.user.id)
     const { productId, quantity, notes } = req.body;
     const run = await createProductionRun({
       productId,

@@ -17,6 +17,8 @@ import settingsModule from './modules/settings/index.js';
 import authModule from './modules/auth/index.js';
 import supplierModule from './modules/suppliers/index.js';
 import adjustmentsModule from './modules/adjustments/index.js';
+import salesAdjustmentModule from './modules/salesAdjustments/index.js';
+import productAdjustmentModule from './modules/productAdjustments/index.js';
 import dashboardModule from './modules/dashboard/index.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './swagger.js';
@@ -58,6 +60,8 @@ app.use('/api/reports', reportingModule);
 app.use('/api/settings', settingsModule);
 app.use('/api/suppliers', supplierModule);
 app.use('/api/dashboard', dashboardModule);
+app.use('/api/sales-adjustments', salesAdjustmentModule);
+app.use('/api/product-adjustments', productAdjustmentModule);
 
 app.use(
   '/api-docs',
