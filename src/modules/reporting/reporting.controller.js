@@ -214,3 +214,14 @@ export const getCashSalesSummaryReport = async (req, res) => {
   const report = await reportingService.generateCashSalesSummaryReport(req.query);
   res.json({ data: report });
 };
+
+/**
+ * Responds with a sales returns report.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @memberof ReportingController
+ */
+export const getSalesReturnsReport = async (req, res) => {
+  const report = await reportingService.generateSalesReturnsReport(req.query);
+  res.json({ data: report });
+};

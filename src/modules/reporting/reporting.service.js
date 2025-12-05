@@ -683,6 +683,89 @@ export const generateSalesSummaryReport = async ({ date, endDate, startDate }) =
 };
 
 /**
+ * Generates a sales returns report.
+ * @param {object} params - Parameters for the report (e.g., startDate, endDate).
+ * @returns {Promise<Array>} A promise that resolves to the sales returns data.
+ * @memberof ReportingService
+ */
+export const generateSalesReturnsReport = async ({ date, endDate, startDate }) => {
+  const where = {
+    status: 'APPROVED',
+  };
+
+  if (date) {
+    where.updatedAt = {
+      gte: new Date(date),
+      lt: new Date(new Date(date).setDate(new Date(date).getDate() + 1)),
+    };
+  }
+
+  if (startDate && endDate) {
+    where.updatedAt = {
+      gte: new Date(startDate),
+      lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+    };
+  }
+
+  // Get approved sales adjustments (these represent returns)
+  const salesAdjustments = await prisma.salesAdjustment.findMany({
+    where,
+    include: {
+      sale: {
+        include: {
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      },
+      items: {
+        include: {
+          product: true,
+        },
+      },
+      approvedBy: true,
+      requestedBy: true,
+    },
+  });
+
+  // Transform the data into the required format
+  return salesAdjustments.flatMap((adjustment) => {
+    return adjustment.items.map((adjustmentItem) => {
+      // Find the corresponding sale item
+      const saleItem = adjustment.sale.items.find(
+        (item) => item.productId === adjustmentItem.productId
+      );
+
+      // Calculate the sold quantity (original sale quantity)
+      const soldQty = saleItem ? saleItem.quantity : 0;
+      
+      // Get the returned quantity
+      const returnedQty = adjustmentItem.quantity;
+      
+      // Calculate returned amount (unit price * returned quantity)
+      const returnedAmount = saleItem ? (saleItem.price * returnedQty) : 0;
+
+      return {
+        productName: adjustmentItem.product.name,
+        saleDate: adjustment.sale.createdAt.toISOString().split('T')[0],
+        returnedDate: adjustment.updatedAt.toISOString().split('T')[0],
+        soldQty: soldQty + returnedQty, // original sold qty
+        returnedQty: returnedQty,
+        returnedAmount: returnedAmount,
+        // Additional fields that might be useful
+        saleId: adjustment.saleId,
+        adjustmentId: adjustment.id,
+        reason: adjustment.reason,
+        approvedBy: adjustment.approvedBy?.name,
+        requestedBy: adjustment.requestedBy?.name,
+      };
+    });
+  }).sort((a, b) => new Date(b.returnedDate) - new Date(a.returnedDate)); // Sort by return date descending
+};
+
+/**
  * Generates a credit sales summary report.
  * @param {object} params - Parameters for the report (e.g., startDate, endDate).
  * @returns {Promise<object>} A promise that resolves to the credit sales summary report data.

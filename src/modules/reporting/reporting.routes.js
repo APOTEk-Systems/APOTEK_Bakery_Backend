@@ -24,5 +24,6 @@ router.get('/ingredient-summary', authMiddleware, authorize(['view:reports']), r
 router.get('/sales-summary', authMiddleware, authorize(['view:reports']), reportingController.getSalesSummaryReport);
 router.get('/credit-sales-summary', authMiddleware, authorize(['view:reports']), reportingController.getCreditSalesSummaryReport);
 router.get('/cash-sales-summary', authMiddleware, authorize(['view:reports']), reportingController.getCashSalesSummaryReport);
+router.get('/sales-returns', authMiddleware, authorize(['view:reports']), reportingController.getSalesReturnsReport);
 
 export default router;
