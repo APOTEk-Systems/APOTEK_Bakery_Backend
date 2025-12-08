@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient as MultiPrismaClient } from '../generated/prisma-client/index.js';
 
-const prisma = new PrismaClient();
+const prisma = new MultiPrismaClient();
 
 const authMiddleware = async (req, res, next) => {
   const token = req.header('Authorization');
@@ -14,7 +14,7 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, name: true, role: { select: { name: true, permissions: true } } },
+      select: { id: true, email: true, name: true, bakeryId: true, role: { select: { name: true, permissions: true } } },
     });
 
     if (!user) {
@@ -27,6 +27,7 @@ const authMiddleware = async (req, res, next) => {
       email: user.email,
       role: user.role.name,
       permissions: user.role.permissions,
+      bakeryId: user.bakeryId,
     };
     next();
   } catch (error) {

@@ -1,5 +1,5 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { PrismaClient as MultiPrismaClient } from "../../generated/prisma-client/index.js";
+const prisma = new MultiPrismaClient();
 
 /**
  * @namespace SaleService
@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
  */
 
 /**
- * Retrieves all sales from the database.
+ * Retrieves all sales from the database for a specific bakery.
  * @returns {Promise<Array>} A promise that resolves to an array of sales.
  * @memberof SaleService
  */
@@ -21,8 +21,8 @@ export const getAllSales = async ({
   page,
   customerName,
   order
-}) => {
-  const where = {};
+}, bakeryId) => {
+  const where = { bakeryId };
 
   if (date) {
     where.createdAt = {
@@ -78,8 +78,6 @@ export const getAllSales = async ({
     take: limit,
   });
 
- // console.log(salesRaw);
-
   const total = await prisma.sale.count({ where });
 
   const sales = salesRaw.map((sale) => {
@@ -104,24 +102,25 @@ export const getAllSales = async ({
 };
 
 /**
- * Creates a new sale.
+ * Creates a new sale within a specific bakery.
  * @param {object} saleData - The data for the new sale.
+ * @param {number} userId - The ID of the user creating the sale.
+ * @param {number} bakeryId - The ID of the bakery.
  * @returns {Promise<object>} A promise that resolves to the newly created sale.
  * @memberof SaleService
  */
-export const createSale = async (saleData, userId) => {
+export const createSale = async (saleData, userId, bakeryId) => {
   const { items, customerId, isCredit, total, ...rest } = saleData;
 
   try {
     return await prisma.$transaction(
       async (tx) => {
-        // 1. Check for product existence and credit in parallel
         const productExistenceChecks = items.map((item) =>
-          tx.product.findUnique({ where: { id: item.productId } })
+          tx.product.findFirst({ where: { id: item.productId, bakeryId } })
         );
 
         const creditCheck = isCredit
-          ? tx.customer.findUnique({ where: { id: customerId } })
+          ? tx.customer.findFirst({ where: { id: customerId, bakeryId } })
           : Promise.resolve(null);
 
         const [products, customer] = await Promise.all([
@@ -129,7 +128,6 @@ export const createSale = async (saleData, userId) => {
           creditCheck,
         ]);
 
-        // 2. Validate products
         products.forEach((product, index) => {
           if (!product) {
             throw new Error(
@@ -138,7 +136,6 @@ export const createSale = async (saleData, userId) => {
           }
         });
 
-        // 3. Validate customer and credit
         if (isCredit) {
           if (!customerId) {
             throw new Error("customerId is required for credit sales.");
@@ -155,7 +152,6 @@ export const createSale = async (saleData, userId) => {
           }
         }
 
-        // 4. Create the sale
         const saleInput = {
           ...rest,
           total,
@@ -163,8 +159,9 @@ export const createSale = async (saleData, userId) => {
           status: isCredit ? "unpaid" : "completed",
           soldBy: { connect: { id: userId } },
           items: {
-            create: items,
+            create: items.map(item => ({...item, bakeryId})),
           },
+          bakeryId,
         };
 
         if (customerId) {
@@ -176,7 +173,6 @@ export const createSale = async (saleData, userId) => {
           include: { items: true },
         });
 
-        // 5. Update customer credit and product quantities in parallel
         const customerUpdate = isCredit
           ? tx.customer.update({
               where: { id: customerId },
@@ -204,26 +200,26 @@ export const createSale = async (saleData, userId) => {
         return { sale, outstandingPayments };
       },
       {
-        maxWait: 15000, // default: 2000
-        timeout: 15000, // default: 5000
+        maxWait: 15000,
+        timeout: 15000,
       }
     );
   } catch (err) {
     console.log(err);
-    // Re-throw the original error to be caught by the controller
     throw err;
   }
 };
 
 /**
- * Retrieves a single sale by its ID.
+ * Retrieves a single sale by its ID from a specific bakery.
  * @param {string} id - The ID of the sale to retrieve.
+ * @param {number} bakeryId - The ID of the bakery.
  * @returns {Promise<object|null>} A promise that resolves to the sale object if found, or null otherwise.
  * @memberof SaleService
  */
-export const getSaleById = async (id) => {
-  const sale = await prisma.sale.findUnique({
-    where: { id },
+export const getSaleById = async (id, bakeryId) => {
+  const sale = await prisma.sale.findFirst({
+    where: { id, bakeryId },
     include: {
       items: {
         include: { product: true },
@@ -238,11 +234,10 @@ export const getSaleById = async (id) => {
   const totalPaid = sale.creditPayments.reduce((sum, p) => sum + p.amount, 0);
   const outstandingBalance = sale.isCredit ? sale.total - totalPaid : 0;
 
-  // Move product name into each item
   const itemsWithProductName = sale.items.map((item) => ({
     ...item,
     name: item.product.name,
-    product: undefined, // optional: remove the original product object
+    product: undefined,
   }));
 
   return {
@@ -254,22 +249,27 @@ export const getSaleById = async (id) => {
 };
 
 /**
- * Updates an existing sale.
+ * Updates an existing sale in a specific bakery.
  * @param {string} id - The ID of the sale to update.
  * @param {object} saleData - The updated data for the sale.
+ * @param {number} bakeryId - The ID of the bakery.
  * @returns {Promise<object>} A promise that resolves to the updated sale object.
  * @memberof SaleService
  */
-export const updateSale = async (id, saleData) => {
+export const updateSale = async (id, saleData, bakeryId) => {
+    const sale = await prisma.sale.findFirst({ where: { id, bakeryId } });
+    if (!sale) {
+        throw new Error("Sale not found in this bakery");
+    }
   return await prisma.sale.update({ where: { id }, data: saleData });
 };
 
-export const createCreditPayment = async (saleId, paymentData, userId) => {
+export const createCreditPayment = async (saleId, paymentData, userId, bakeryId) => {
   const { amount, notes } = paymentData;
 
   return await prisma.$transaction(async (tx) => {
-    const sale = await tx.sale.findUnique({
-      where: { id: saleId },
+    const sale = await tx.sale.findFirst({
+      where: { id: saleId, bakeryId },
       include: { creditPayments: true },
     });
 
@@ -290,15 +290,14 @@ export const createCreditPayment = async (saleId, paymentData, userId) => {
       );
     }
 
-    const customer = await tx.customer.findUnique({
-      where: { id: sale.customerId },
+    const customer = await tx.customer.findFirst({
+      where: { id: sale.customerId, bakeryId },
     });
 
     if (!customer) {
       throw new Error("Customer not found for this sale.");
     }
 
-    // 1. Create the credit payment
     const payment = await tx.creditPayment.create({
       data: {
         amount,
@@ -306,6 +305,7 @@ export const createCreditPayment = async (saleId, paymentData, userId) => {
         saleId,
         customerId: sale.customerId,
         receivedById: userId,
+        bakeryId,
       },
       include: {
         receivedBy: {
@@ -316,13 +316,11 @@ export const createCreditPayment = async (saleId, paymentData, userId) => {
       },
     });
 
-    // 2. Update customer's current credit balance
     await tx.customer.update({
       where: { id: sale.customerId },
       data: { currentCredit: { decrement: amount } },
     });
 
-    // 3. Update the sale's payment status
     const newTotalPaid = totalPaid + amount;
     let newPaymentStatus = "PARTIALLY_PAID";
     let newStatus = sale.status;
@@ -343,7 +341,11 @@ export const createCreditPayment = async (saleId, paymentData, userId) => {
   });
 };
 
-export const getPaymentsForSale = async (saleId) => {
+export const getPaymentsForSale = async (saleId, bakeryId) => {
+    const sale = await prisma.sale.findFirst({ where: { id: saleId, bakeryId } });
+    if (!sale) {
+        throw new Error("Sale not found in this bakery");
+    }
   return await prisma.creditPayment.findMany({
     where: { saleId },
     include: {
@@ -358,8 +360,9 @@ export const getPaymentsForSale = async (saleId) => {
 };
 
 
-export const getAllCreditPayments = async () => {
+export const getAllCreditPayments = async (bakeryId) => {
   return await prisma.creditPayment.findMany({
+    where: { bakeryId },
     include: {
       customer: true,
       receivedBy: {
@@ -373,18 +376,23 @@ export const getAllCreditPayments = async () => {
 };
 
 /**
- * Deletes a sale by its ID.
+ * Deletes a sale by its ID from a specific bakery.
  * @param {string} id - The ID of the sale to delete.
+ * @param {number} bakeryId - The ID of the bakery.
  * @returns {Promise<object>} A promise that resolves to the deleted sale object.
  * @memberof SaleService
  */
-export const deleteSale = async (id) => {
+export const deleteSale = async (id, bakeryId) => {
   const saleId = parseInt(id);
+  const sale = await prisma.sale.findFirst({ where: { id: saleId, bakeryId } });
+    if (!sale) {
+        throw new Error("Sale not found in this bakery");
+    }
   await prisma.saleItem.deleteMany({ where: { saleId } });
   return await prisma.sale.delete({ where: { id: saleId } });
 };
 
-export const getSalesSummary = async () => {
+export const getSalesSummary = async (bakeryId) => {
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
@@ -397,6 +405,7 @@ export const getSalesSummary = async () => {
 
   const sales = await prisma.sale.findMany({
     where: {
+      bakeryId,
       createdAt: {
         gte: firstDayOfLastMonth,
       },
@@ -469,7 +478,6 @@ export const getSalesSummary = async () => {
     0
   );
 
-  // Daily Sales Aggregation (last 14 days)
   const dailySalesList = [];
   for (let i = 0; i < 14; i++) {
     const date = new Date(now);
@@ -481,6 +489,7 @@ export const getSalesSummary = async () => {
 
     const salesInDay = await prisma.sale.findMany({
       where: {
+        bakeryId,
         createdAt: {
           gte: date,
           lte: endOfDay,

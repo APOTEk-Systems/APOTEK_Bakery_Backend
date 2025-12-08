@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import {PrismaClient as MultiPrismaClient} from '../../generated/prisma-client/index.js';
+
+const prisma = new MultiPrismaClient();
 
 /**
  * @namespace AccountingService

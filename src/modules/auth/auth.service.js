@@ -1,44 +1,83 @@
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient as MultiPrismaClient } from '../../generated/prisma-client/index.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
-const prisma = new PrismaClient();
+const prisma = new MultiPrismaClient();
 
 const hashToken = (token) => {
   return crypto.createHash('sha256').update(token).digest('hex');
 };
 
-export const registerUser = async (userData) => {
-  const { email, password, name, roleName, permissions, ...rest } = userData;
+async function generateUniqueLoginCode() {
+  let loginCode;
+  let isUnique = false;
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
-    throw new Error('User with this email already exists');
+  while (!isUnique) {
+    loginCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const existingUser = await prisma.user.findUnique({
+      where: { loginCode },
+    });
+    if (!existingUser) {
+      isUnique = true;
+    }
   }
+  return loginCode;
+}
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+export const registerUser = async (userData) => {
+    const { email, password, name, bakeryName } = userData;
 
-  const role = await prisma.userRole.upsert({
-    where: { name: roleName },
-    update: { permissions },
-    create: { name: roleName, permissions },
-  });
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      throw new Error('User with this email already exists');
+    }
+    
+    const loginCode = await generateUniqueLoginCode();
+    const hashedPassword = await bcrypt.hash(password, 10);
+  
+    return prisma.$transaction(async (tx) => {
+        // 1. Create Bakery
+        const newBakery = await tx.bakery.create({
+            data: {
+                name: bakeryName,
+            }
+        });
 
-  const newUser = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      name,
-      role: {
-        connect: { id: role.id },
-      },
-      ...rest,
-    },
-    select: { id: true, email: true },
-  });
-  return newUser;
+        // 2. Create settings entry
+        await tx.settings.create({
+            data: {
+                key: 'information',
+                data: { bakeryName: newBakery.name },
+                bakeryId: newBakery.id,
+            }
+        });
+    
+        // 3. Create a default Admin role for the new bakery
+        const adminRole = await tx.userRole.create({
+            data: {
+                name: 'Admin',
+                permissions: ['all'], // Give all permissions to admin
+                bakeryId: newBakery.id,
+            }
+        });
+    
+        // 4. Create the user
+        const newUser = await tx.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                loginCode,
+                bakeryId: newBakery.id,
+                roleId: adminRole.id,
+            },
+            include: { role: true },
+        });
+
+        return newUser;
+    });
 };
 
 export const loginUser = async (email, password, res) => {
@@ -51,7 +90,7 @@ export const loginUser = async (email, password, res) => {
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) throw new Error('Invalid credentials');
 
-  const token = jwt.sign({ userId: user.id, role: user.role.name, permissions: user.role.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
+  const token = jwt.sign({ userId: user.id, bakeryId: user.bakeryId, role: user.role.name, permissions: user.role.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
 
   const refreshToken = crypto.randomBytes(32).toString('hex');
   const hashedRefreshToken = hashToken(refreshToken);
@@ -62,6 +101,7 @@ export const loginUser = async (email, password, res) => {
       token: hashedRefreshToken,
       expiresAt: refreshTokenExpiry,
       userId: user.id,
+      bakeryId: user.bakeryId,
     },
   });
 
@@ -72,7 +112,7 @@ export const loginUser = async (email, password, res) => {
     expires: refreshTokenExpiry,
   });
 
-  return { user: { id: user.id, email: user.email, name:user.name, role: user.role.name, permissions: user.role.permissions }, token };
+  return { user: { id: user.id, email: user.email, name:user.name, role: user.role.name, permissions: user.role.permissions, bakeryId: user.bakeryId }, token };
 };
 
 export const loginWithCode = async (email, loginCode, res) => {
@@ -116,7 +156,7 @@ export const loginWithCode = async (email, loginCode, res) => {
     },
   });
 
-  const token = jwt.sign({ userId: user.id, role: user.role.name, permissions: user.role.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
+  const token = jwt.sign({ userId: user.id, bakeryId: user.bakeryId, role: user.role.name, permissions: user.role.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
 
   const refreshToken = crypto.randomBytes(32).toString('hex');
   const hashedRefreshToken = hashToken(refreshToken);
@@ -127,6 +167,7 @@ export const loginWithCode = async (email, loginCode, res) => {
       token: hashedRefreshToken,
       expiresAt: refreshTokenExpiry,
       userId: user.id,
+      bakeryId: user.bakeryId,
     },
   });
 
@@ -137,7 +178,7 @@ export const loginWithCode = async (email, loginCode, res) => {
     expires: refreshTokenExpiry,
   });
 
-  return { user: { id: user.id, email: user.email, name:user.name, role: user.role.name, permissions: user.role.permissions }, token };
+  return { user: { id: user.id, email: user.email, name:user.name, role: user.role.name, permissions: user.role.permissions, bakeryId: user.bakeryId }, token };
 };
 
 export const refreshToken = async (req, res) => {
@@ -166,7 +207,7 @@ export const refreshToken = async (req, res) => {
 
   const { user } = tokenRecord;
 
-  const newToken = jwt.sign({ userId: user.id, name:user.name, role: user.role.name, permissions: user.role.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
+  const newToken = jwt.sign({ userId: user.id, name:user.name, bakeryId: user.bakeryId, role: user.role.name, permissions: user.role.permissions }, process.env.JWT_SECRET, { expiresIn: '15m' });
 
   const newRefreshToken = crypto.randomBytes(32).toString('hex');
   const hashedNewRefreshToken = hashToken(newRefreshToken);
@@ -183,6 +224,7 @@ export const refreshToken = async (req, res) => {
         token: hashedNewRefreshToken,
         expiresAt: newRefreshTokenExpiry,
         userId: user.id,
+        bakeryId: user.bakeryId,
       },
     }),
   ]);
@@ -194,7 +236,7 @@ export const refreshToken = async (req, res) => {
     expires: newRefreshTokenExpiry,
   });
 
-  return { user: { id: user.id, email: user.email, name:user.name, role: user.role.name, permissions: user.role.permissions }, token: newToken };
+  return { user: { id: user.id, email: user.email, name:user.name, role: user.role.name, permissions: user.role.permissions, bakeryId: user.bakeryId }, token: newToken };
 };
 
 export const logoutUser = async (req, res) => {

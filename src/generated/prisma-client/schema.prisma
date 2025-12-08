@@ -1,0 +1,557 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("MULTI_TENANCY_DATABASE_URL")
+}
+
+model Bakery {
+  id                             Int                             @id @default(autoincrement())
+  name                           String
+  address                        String?
+  phoneNumber                    String?
+  email                          String?
+  tin                            String?
+  website                        String?
+  subdomain                      String?                         @unique
+  createdAt                      DateTime                        @default(now())
+  updatedAt                      DateTime                        @updatedAt
+  products                       Product[]
+  users                          User[]
+  refreshTokens                  RefreshToken[]
+  customers                      Customer[]
+  creditPayments                 CreditPayment[]
+  sales                          Sale[]
+  saleItems                      SaleItem[]
+  suppliers                      Supplier[]
+  purchaseOrders                 PurchaseOrder[]
+  purchaseOrderItems             PurchaseOrderItem[]
+  goodsReceipts                  GoodsReceipt[]
+  inventoryItems                 InventoryItem[]
+  inventoryAdjustments           InventoryAdjustment[]
+  productAdjustments             ProductAdjustment[]
+  expenseCategories              ExpenseCategory[]
+  expenses                       Expense[]
+  productionRuns                 ProductionRun[]
+  productRecipes                 ProductRecipe[]
+  productionIngredientDeductions ProductionIngredientDeduction[]
+  auditLogs                      AuditLog[]
+  settings                       Settings[]
+  salesAdjustments               SalesAdjustment[]
+  salesAdjustmentItems           SalesAdjustmentItem[]
+  userRoles                      UserRole[]
+  adjustmentReasons              AdjustmentReason[]
+}
+
+model Product {
+  id                   Int                   @id @default(autoincrement())
+  name                 String
+  description          String?
+  price                Float
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  createdById          Int
+  updatedById          Int?
+  image                String?
+  instructions         String
+  prepTime             Int?
+  quantity             Int                   @default(0)
+  batchSize            Int                   @default(1)
+  status               String                @default("active")
+  createdBy            User                  @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  updatedBy            User?                 @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
+  productRecipes       ProductRecipe[]
+  productionRuns       ProductionRun[]
+  saleItems            SaleItem[]
+  salesAdjustmentItems SalesAdjustmentItem[]
+  adjustments          ProductAdjustment[]
+  bakeryId             Int
+  bakery               Bakery                @relation(fields: [bakeryId], references: [id])
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([bakeryId])
+}
+
+model User {
+  id                          Int                   @id @default(autoincrement())
+  email                       String                @unique
+  phoneNumber                 String?
+  name                        String?
+  createdAt                   DateTime              @default(now())
+  updatedAt                   DateTime              @updatedAt
+  password                    String
+  status                      String                @default("active")
+  roleId                      Int
+  loginCode                   String?               @unique
+  failedLoginAttempts         Int?                  @default(0)
+  lockoutUntil                DateTime?
+  auditLogs                   AuditLog[]
+  processedCreditPayments     CreditPayment[]       @relation("CreditPaymentProcessedBy")
+  createdCustomers            Customer[]            @relation("CustomerCreatedBy")
+  updatedCustomers            Customer[]            @relation("CustomerUpdatedBy")
+  approvedExpenses            Expense[]             @relation("ExpenseApprovedBy")
+  createdExpenses             Expense[]             @relation("ExpenseCreatedBy")
+  updatedExpenses             Expense[]             @relation("ExpenseUpdatedBy")
+  createdGoodsReceipts        GoodsReceipt[]        @relation("GoodsReceiptCreatedBy")
+  createdInventoryAdjustments InventoryAdjustment[] @relation("InventoryAdjustmentCreatedBy")
+  createdInventoryItems       InventoryItem[]       @relation("InventoryItemCreatedBy")
+  updatedInventoryItems       InventoryItem[]       @relation("InventoryItemUpdatedBy")
+  createdProducts             Product[]             @relation("ProductCreatedBy")
+  updatedProducts             Product[]             @relation("ProductUpdatedBy")
+  producedProductionRuns      ProductionRun[]       @relation("ProductionRunProducedBy")
+  updatedProductionRuns       ProductionRun[]       @relation("ProductionRunUpdatedBy")
+  approvedPurchaseOrders      PurchaseOrder[]       @relation("PurchaseOrderApprovedBy")
+  purchaseOrders              PurchaseOrder[]       @relation("PurchaseOrderCreatedBy")
+  refreshTokens               RefreshToken[]
+  sales                       Sale[]
+  role                        UserRole              @relation(fields: [roleId], references: [id])
+  requestedSalesAdjustments   SalesAdjustment[]     @relation("SalesAdjustmentRequestedBy")
+  approvedSalesAdjustments    SalesAdjustment[]     @relation("SalesAdjustmentApprovedBy")
+  createdProductAdjustments   ProductAdjustment[]   @relation("ProductAdjustmentCreatedBy")
+  bakeryId                    Int
+  bakery                      Bakery                @relation(fields: [bakeryId], references: [id])
+
+  @@index([bakeryId])
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  expiresAt DateTime
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bakeryId  Int
+  bakery    Bakery   @relation(fields: [bakeryId], references: [id])
+
+  @@index([userId])
+  @@index([bakeryId])
+}
+
+model UserRole {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  permissions String[]
+  users       User[]
+  bakeryId    Int
+  bakery      Bakery   @relation(fields: [bakeryId], references: [id])
+
+  @@unique([name, bakeryId])
+  @@index([bakeryId])
+}
+
+model Customer {
+  id             Int             @id @default(autoincrement())
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  status         String          @default("active")
+  isCredit       Boolean         @default(false)
+  creditLimit    Float?
+  currentCredit  Float?
+  loyaltyPoints  Int?
+  birthday       DateTime?
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  createdById    Int
+  updatedById    Int?
+  creditPayments CreditPayment[]
+  createdBy      User            @relation("CustomerCreatedBy", fields: [createdById], references: [id])
+  updatedBy      User?           @relation("CustomerUpdatedBy", fields: [updatedById], references: [id])
+  sales          Sale[]
+  bakeryId       Int
+  bakery         Bakery          @relation(fields: [bakeryId], references: [id])
+
+  @@unique([email, bakeryId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([bakeryId])
+}
+
+model CreditPayment {
+  id           Int      @id @default(autoincrement())
+  amount       Float
+  customerId   Int
+  saleId       Int
+  paymentDate  DateTime @default(now())
+  notes        String?
+  receivedById Int      @default(1)
+  customer     Customer @relation(fields: [customerId], references: [id])
+  receivedBy   User     @relation("CreditPaymentProcessedBy", fields: [receivedById], references: [id])
+  sale         Sale     @relation(fields: [saleId], references: [id])
+  bakeryId     Int
+  bakery       Bakery   @relation(fields: [bakeryId], references: [id])
+
+  @@index([customerId])
+  @@index([saleId])
+  @@index([receivedById])
+  @@index([bakeryId])
+}
+
+model Sale {
+  id             Int               @id @default(autoincrement())
+  customerId     Int?
+  soldById       Int
+  isCredit       Boolean           @default(false)
+  creditDueDate  DateTime?
+  total          Float
+  status         String            @default("completed")
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  paymentStatus  String            @default("UNPAID")
+  subtotal       Decimal?          @db.Decimal
+  vat            Decimal?          @default(0) @db.Decimal
+  creditPayments CreditPayment[]
+  customer       Customer?         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  soldBy         User              @relation(fields: [soldById], references: [id])
+  items          SaleItem[]
+  adjustments    SalesAdjustment[]
+  bakeryId       Int
+  bakery         Bakery            @relation(fields: [bakeryId], references: [id])
+
+  @@index([customerId])
+  @@index([soldById])
+  @@index([bakeryId])
+}
+
+model SaleItem {
+  id        Int     @id @default(autoincrement())
+  saleId    Int
+  productId Int
+  quantity  Int
+  price     Float
+  notes     String?
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  bakeryId  Int
+  bakery    Bakery  @relation(fields: [bakeryId], references: [id])
+
+  @@index([productId])
+  @@index([saleId])
+  @@index([bakeryId])
+}
+
+model Supplier {
+  id             Int             @id @default(autoincrement())
+  name           String
+  contactInfo    String?
+  email          String?
+  address        String?
+  status         String?         @default("active")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  purchaseOrders PurchaseOrder[]
+  bakeryId       Int
+  bakery         Bakery          @relation(fields: [bakeryId], references: [id])
+
+  @@unique([name, bakeryId])
+  @@index([bakeryId])
+}
+
+model PurchaseOrder {
+  id            Int                 @id @default(autoincrement())
+  totalCost     Float
+  status        String              @default("pending")
+  notes         String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  createdById   Int
+  approvedById  Int?
+  supplierId    Int
+  goodsReceipts GoodsReceipt[]
+  approvedBy    User?               @relation("PurchaseOrderApprovedBy", fields: [approvedById], references: [id])
+  createdBy     User                @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id])
+  supplier      Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  items         PurchaseOrderItem[]
+  bakeryId      Int
+  bakery        Bakery              @relation(fields: [bakeryId], references: [id])
+
+  @@index([approvedById])
+  @@index([createdById])
+  @@index([supplierId])
+  @@index([bakeryId])
+}
+
+model PurchaseOrderItem {
+  id              Int           @id @default(autoincrement())
+  purchaseOrderId Int
+  quantity        Int
+  inventoryItemId Int
+  price           Float
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  bakeryId        Int
+  bakery          Bakery        @relation(fields: [bakeryId], references: [id])
+
+  @@index([inventoryItemId])
+  @@index([purchaseOrderId])
+  @@index([bakeryId])
+}
+
+model GoodsReceipt {
+  id               Int           @id @default(autoincrement())
+  purchaseOrderId  Int
+  receivedQuantity Int
+  status           String        @default("pending")
+  receivedDate     DateTime      @default(now())
+  notes            String?
+  createdById      Int
+  createdBy        User          @relation("GoodsReceiptCreatedBy", fields: [createdById], references: [id])
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  bakeryId         Int
+  bakery           Bakery        @relation(fields: [bakeryId], references: [id])
+
+  @@index([createdById])
+  @@index([purchaseOrderId])
+  @@index([bakeryId])
+}
+
+model InventoryItem {
+  id                   Int                             @id @default(autoincrement())
+  name                 String
+  currentQuantity      Float
+  minLevel             Float
+  maxLevel             Float?
+  cost                 Float
+  status               String                          @default("in-stock")
+  createdAt            DateTime                        @default(now())
+  updatedAt            DateTime                        @updatedAt
+  createdById          Int
+  updatedById          Int?
+  unit                 String
+  type                 String                          @default("raw_material")
+  adjustments          InventoryAdjustment[]
+  createdBy            User                            @relation("InventoryItemCreatedBy", fields: [createdById], references: [id])
+  updatedBy            User?                           @relation("InventoryItemUpdatedBy", fields: [updatedById], references: [id])
+  productRecipes       ProductRecipe[]
+  productionDeductions ProductionIngredientDeduction[]
+  PurchaseOrderItem    PurchaseOrderItem[]
+  bakeryId             Int
+  bakery               Bakery                          @relation(fields: [bakeryId], references: [id])
+
+  @@unique([name, bakeryId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([bakeryId])
+}
+
+model InventoryAdjustment {
+  id              Int           @id @default(autoincrement())
+  inventoryItemId Int
+  amount          Float
+  reason          String?
+  createdAt       DateTime      @default(now())
+  createdById     Int
+  createdBy       User          @relation("InventoryAdjustmentCreatedBy", fields: [createdById], references: [id])
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  bakeryId        Int
+  bakery          Bakery        @relation(fields: [bakeryId], references: [id])
+
+  @@index([createdById])
+  @@index([inventoryItemId])
+  @@index([bakeryId])
+}
+
+model ProductAdjustment {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  amount      Float
+  reason      String?
+  createdAt   DateTime @default(now())
+  createdById Int
+  createdBy   User     @relation("ProductAdjustmentCreatedBy", fields: [createdById], references: [id])
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  bakeryId    Int
+  bakery      Bakery   @relation(fields: [bakeryId], references: [id])
+
+  @@index([createdById])
+  @@index([productId])
+  @@index([bakeryId])
+}
+
+model AdjustmentReason {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  bakeryId    Int
+  bakery      Bakery   @relation(fields: [bakeryId], references: [id])
+
+  @@unique([name, bakeryId])
+  @@index([bakeryId])
+}
+
+model ExpenseCategory {
+  id       Int       @id @default(autoincrement())
+  name     String
+  expenses Expense[]
+  bakeryId Int
+  bakery   Bakery    @relation(fields: [bakeryId], references: [id])
+
+  @@unique([name, bakeryId])
+  @@index([bakeryId])
+}
+
+model Expense {
+  id                Int             @id @default(autoincrement())
+  amount            Float
+  date              DateTime
+  status            String          @default("pending")
+  notes             String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  createdById       Int
+  approvedById      Int?
+  updatedById       Int?
+  expenseCategoryId Int
+  paymentMethod     String          @default("cash")
+  approvedBy        User?           @relation("ExpenseApprovedBy", fields: [approvedById], references: [id])
+  createdBy         User            @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+  expenseCategory   ExpenseCategory @relation(fields: [expenseCategoryId], references: [id])
+  updatedBy         User?           @relation("ExpenseUpdatedBy", fields: [updatedById], references: [id])
+  bakeryId          Int
+  bakery            Bakery          @relation(fields: [bakeryId], references: [id])
+
+  @@index([approvedById])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([expenseCategoryId])
+  @@index([bakeryId])
+}
+
+model ProductionRun {
+  id                  Int                             @id @default(autoincrement())
+  productId           Int
+  quantityProduced    Int
+  date                DateTime                        @default(now())
+  producedById        Int
+  cost                Float
+  notes               String?
+  createdAt           DateTime                        @default(now())
+  updatedAt           DateTime                        @updatedAt
+  updatedById         Int?
+  finalizedAt         DateTime?
+  status              String                          @default("PENDING")
+  ingredientsDeducted ProductionIngredientDeduction[]
+  producedBy          User                            @relation("ProductionRunProducedBy", fields: [producedById], references: [id])
+  product             Product                         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  updatedBy           User?                           @relation("ProductionRunUpdatedBy", fields: [updatedById], references: [id])
+  bakeryId            Int
+  bakery              Bakery                          @relation(fields: [bakeryId], references: [id])
+
+  @@index([producedById])
+  @@index([productId])
+  @@index([updatedById])
+  @@index([bakeryId])
+}
+
+model ProductRecipe {
+  id              Int           @id @default(autoincrement())
+  productId       Int
+  inventoryItemId Int
+  amountRequired  Float
+  unit            String?
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  bakeryId        Int
+  bakery          Bakery        @relation(fields: [bakeryId], references: [id])
+
+  @@unique([productId, inventoryItemId])
+  @@index([inventoryItemId])
+  @@index([bakeryId])
+}
+
+model ProductionIngredientDeduction {
+  id              Int           @id @default(autoincrement())
+  productionRunId Int
+  amountDeducted  Float
+  inventoryItemId Int
+  cost            Float?
+  unit            String?
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  productionRun   ProductionRun @relation(fields: [productionRunId], references: [id], onDelete: Cascade)
+  bakeryId        Int
+  bakery          Bakery        @relation(fields: [bakeryId], references: [id])
+
+  @@unique([productionRunId, inventoryItemId])
+  @@index([inventoryItemId])
+  @@index([bakeryId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  userName  String
+  action    String
+  entityId  Int?
+  timestamp DateTime @default(now())
+  details   String?
+  user      User     @relation(fields: [userId], references: [id])
+  bakeryId  Int
+  bakery    Bakery   @relation(fields: [bakeryId], references: [id])
+
+  @@index([userId])
+  @@index([bakeryId])
+}
+
+model Settings {
+  id       Int    @id @default(autoincrement())
+  key      String
+  data     Json
+  bakeryId Int
+  bakery   Bakery @relation(fields: [bakeryId], references: [id])
+
+  @@unique([key, bakeryId])
+  @@index([bakeryId])
+}
+
+enum AdjustmentStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+model SalesAdjustment {
+  id            Int                   @id @default(autoincrement())
+  saleId        Int
+  reason        String
+  status        AdjustmentStatus      @default(PENDING)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  requestedById Int
+  approvedById  Int?
+  sale          Sale                  @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  requestedBy   User                  @relation("SalesAdjustmentRequestedBy", fields: [requestedById], references: [id])
+  approvedBy    User?                 @relation("SalesAdjustmentApprovedBy", fields: [approvedById], references: [id])
+  items         SalesAdjustmentItem[]
+  bakeryId      Int
+  bakery        Bakery                @relation(fields: [bakeryId], references: [id])
+
+  @@index([saleId])
+  @@index([requestedById])
+  @@index([approvedById])
+  @@index([bakeryId])
+}
+
+model SalesAdjustmentItem {
+  id                Int             @id @default(autoincrement())
+  salesAdjustmentId Int
+  productId         Int
+  quantity          Int
+  notes             String?
+  salesAdjustment   SalesAdjustment @relation(fields: [salesAdjustmentId], references: [id], onDelete: Cascade)
+  product           Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  bakeryId          Int
+  bakery            Bakery          @relation(fields: [bakeryId], references: [id])
+
+  @@index([salesAdjustmentId])
+  @@index([productId])
+  @@index([bakeryId])
+}
