@@ -550,6 +550,7 @@ export const generateProductionSummaryReport = async ({ date, endDate, startDate
     include: {
       product: true,
     },
+    orderBy: { createdAt: 'desc' },
   });
 
   const productionSummary = productionRuns.reduce((acc, run) => {
@@ -605,6 +606,7 @@ export const generateIngredientSummaryReport = async ({ date, endDate, startDate
       inventoryItem: true,
       productionRun: true,
     },
+    orderBy: { productionRun: { createdAt: 'desc' } },
   });
 
  const ingredientSummary = ingredientUsages.reduce((acc, usage) => {
@@ -663,6 +665,7 @@ export const generateSalesSummaryReport = async ({ date, endDate, startDate }) =
 
   const sales = await prisma.sale.findMany({
     where,
+    orderBy: { createdAt: 'desc' },
   });
 
   const salesSummary = sales.reduce((acc, sale) => {
@@ -728,6 +731,9 @@ export const generateSalesReturnsReport = async ({ date, endDate, startDate }) =
       approvedBy: true,
       requestedBy: true,
     },
+    orderBy:{
+      createdAt: 'desc'
+    }
   });
 
   // Transform the data into the required format
@@ -792,6 +798,7 @@ export const generateCashSalesSummaryReport = async ({ date, endDate, startDate 
 
   const sales = await prisma.sale.findMany({
     where,
+    orderBy: { createdAt: 'desc' },
   });
 
   const salesSummary = sales.reduce((acc, sale) => {
@@ -838,6 +845,7 @@ export const generateCreditSalesSummaryReport = async ({ date, endDate, startDat
 
   const sales = await prisma.sale.findMany({
     where,
+    orderBy: { createdAt: 'desc' },
   });
 
   const salesSummary = sales.reduce((acc, sale) => {
