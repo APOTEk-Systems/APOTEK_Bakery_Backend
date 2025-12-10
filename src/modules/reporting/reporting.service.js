@@ -751,7 +751,8 @@ export const generateSalesReturnsReport = async ({ date, endDate, startDate }) =
       const returnedQty = adjustmentItem.quantity;
       
       // Calculate returned amount (unit price * returned quantity)
-      const returnedAmount = saleItem ? (saleItem.price * returnedQty) : 0;
+      const price = adjustmentItem.price ?? (saleItem ? saleItem.price : 0);
+      const returnedAmount = price * returnedQty;
 
       return {
         productName: adjustmentItem.product.name,

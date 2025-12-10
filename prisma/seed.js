@@ -4,28 +4,27 @@ const prisma = new PrismaClient();
 
 async function main() {
   try {
-    const salesRaw = await prisma.sale.findMany({
-        where: {
-            status: "unpaid",
-            isCredit: true,
-            createdAt:{
-                lt: new Date(new Date().setDate(new Date().getDate() - 30)),
-                gt: new Date(new Date().setDate(new Date().getDate() - 60))
-            }
-        },
-      include: {
-        items: true,
-        customer: true,
-        soldBy: { select: { name: true } },
-        creditPayments: true,
-      },
-      orderBy: { createdAt: "asc" },
-      skip: (1 - 1) * 10,
-      take: 10,
+    const returns = await prisma.salesAdjustment.findMany({
+      include:{
+        items: true
+      }
     });
+   console.log(
+  "Sales Adjustments:",
+  JSON.stringify(
+    returns.map(r => ({
+      id: r.id,
+      items: r.items.map(i => ({
+        id: i.id,
+        price: i.price,
+        quantity: i.quantity
+      }))
+    })),
+    null,
+    2
+  )
+);
 
-    console.log("All users:", salesRaw);
-    return allUsers;
   } catch (error) {
     console.error("Error fetching users:", error);
     throw error;

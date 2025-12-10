@@ -102,6 +102,8 @@ export const createSalesAdjustment = async ({ saleId, reason, items, requestedBy
     }
   }
 
+  console.log(JSON.stringify(items, null, 2));
+
   // Step 5: Create the sales adjustment
   const salesAdjustment = await prisma.salesAdjustment.create({
     data: {
@@ -114,6 +116,7 @@ export const createSalesAdjustment = async ({ saleId, reason, items, requestedBy
             productId: item.productId,
             quantity: item.quantity,
             notes: item.notes,
+            price: item.price || 0
           })),
         },
       },
@@ -284,7 +287,7 @@ export const approveAdjustment = async (adjustmentId, approvedById) => {
         
         // Find the corresponding sale item to get the exact price
         const saleItem = adjustment.sale.items.find(si => si.productId === item.productId);
-        const itemPrice = saleItem ? saleItem.price : item.product.price;
+        const itemPrice = item.itemPrice ?? (saleItem ? saleItem.price : item.product.price);
         const itemReturnValue = item.quantity * itemPrice;
         
         totalReturnAmount += itemReturnValue;

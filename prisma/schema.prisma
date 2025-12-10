@@ -421,6 +421,7 @@ model SalesAdjustmentItem {
   salesAdjustmentId Int
   productId         Int
   quantity          Int
+  price             Float @default(0)
   notes             String?
   salesAdjustment   SalesAdjustment @relation(fields: [salesAdjustmentId], references: [id], onDelete: Cascade)
   product           Product         @relation(fields: [productId], references: [id], onDelete: Cascade)

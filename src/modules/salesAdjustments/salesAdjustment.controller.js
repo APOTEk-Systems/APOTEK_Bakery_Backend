@@ -17,6 +17,8 @@ export const createSalesAdjustment = async (req, res) => {
     const { saleId, reason, items } = req.body;
     const requestedById = req.user.id;
 
+    console.log('Received items for sales adjustment:', JSON.stringify(items, null, 2));
+
     const salesAdjustment = await salesAdjustmentService.createSalesAdjustment({
       saleId,
       reason,
