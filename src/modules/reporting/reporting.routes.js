@@ -7,7 +7,7 @@ const router = Router();
 router.get('/sales', authMiddleware, authorize(['view:reports']), reportingController.getSalesReport);
 router.get('/inventory', authMiddleware, authorize(['view:reports']), reportingController.getInventoryReport);
 router.get('/customers', authMiddleware, authorize(['view:reports']), reportingController.getCustomerReport);
-router.get('/financial', authMiddleware, authorize(['view:reports']), reportingController.getFinancialReport);
+router.get('/gross-profit', authMiddleware, authorize(['view:reports']), reportingController.getFinancialReport);
 router.get('/production', authMiddleware, authorize(['view:reports']), reportingController.getProductionReport);
 router.get('/audit', authMiddleware, authorize(['view:audit']), reportingController.getAuditReport);
 router.get('/expense-breakdown', authMiddleware, authorize(['view:reports']), reportingController.getExpenseBreakdownReport);
@@ -25,5 +25,6 @@ router.get('/sales-summary', authMiddleware, authorize(['view:reports']), report
 router.get('/credit-sales-summary', authMiddleware, authorize(['view:reports']), reportingController.getCreditSalesSummaryReport);
 router.get('/cash-sales-summary', authMiddleware, authorize(['view:reports']), reportingController.getCashSalesSummaryReport);
 router.get('/sales-returns', authMiddleware, authorize(['view:reports']), reportingController.getSalesReturnsReport);
+router.get('/net-profit', authMiddleware, authorize(['view:reports']), reportingController.getNetProfitReport);
 
 export default router;

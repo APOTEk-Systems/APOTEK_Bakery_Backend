@@ -894,4 +894,52 @@ export const generateCreditSalesSummaryReport = async ({ date, endDate, startDat
   }));
 };
 
+/**
+ * Generates a net profit report.
+ * @param {object} params - Parameters for the report (e.g., startDate, endDate).
+ * @returns {Promise<object>} A promise that resolves to the net profit report data.
+ * @memberof ReportingService
+ */
+export const generateNetProfitReport = async (params) => {
+  const dateFilter = applyDateRangeFilter(params);
+
+  // Get total sales
+  const sales = await prisma.sale.findMany({
+    where: dateFilter,
+    select: { total: true },
+  });
+  const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
+
+  // Get total purchases (raw materials and supplies)
+  const purchaseItems = await prisma.purchaseOrderItem.findMany({
+    where: {
+      purchaseOrder: {
+        ...dateFilter,
+      },
+      inventoryItem: {
+        OR: [{ type: "raw_material" }, { type: "supplies" }],
+      },
+    },
+    select: { price: true, quantity: true },
+  });
+  const totalPurchases = purchaseItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  // Get total expenses
+  const expenses = await prisma.expense.aggregate({
+    where: { createdAt: dateFilter.createdAt },
+    _sum: { amount: true },
+  });
+  const totalExpenses = expenses._sum.amount || 0;
+
+  // Calculate net profit
+  const netProfit = totalSales - totalPurchases - totalExpenses;
+
+  return {
+    totalSales,
+    totalPurchases,
+    totalExpenses,
+    netProfit,
+  };
+};
+
 
