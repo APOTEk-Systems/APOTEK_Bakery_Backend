@@ -140,25 +140,13 @@ export const calculateNetProfit = (params) => {
 export const generateFinancialReport = async (params) => {
   const dateFilter = applyDateRangeFilter(params);
 
-  // 1. Total Sales (Revenue)
-  const totalSales =
-    (
-      await prisma.sale.aggregate({
-        where: dateFilter,
-        _sum: { total: true },
-      })
-    )._sum.total || 0;
+  // Get all sales within date range
+  const sales = await prisma.sale.findMany({
+    where: dateFilter,
+    select: { total: true, createdAt: true },
+  });
 
-  // 2. Operating Expenses (not including inventory purchases)
-  const operatingExpenses =
-    (
-      await prisma.expense.aggregate({
-        where: { createdAt: dateFilter.createdAt },
-        _sum: { amount: true },
-      })
-    )._sum.amount || 0;
-
-  // 3. Inventory Purchases = COGS
+  // Get all purchase items within date range
   const purchaseItems = await prisma.purchaseOrderItem.findMany({
     where: {
       purchaseOrder: {
@@ -168,31 +156,71 @@ export const generateFinancialReport = async (params) => {
         OR: [{ type: "raw_material" }, { type: "supplies" }],
       },
     },
-    include: { inventoryItem: true },
+    include: { purchaseOrder: { select: { createdAt: true } } },
   });
 
-  const costOfGoodsSold = purchaseItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  // Group sales by date
+  const salesByDate = sales.reduce((acc, sale) => {
+    const date = sale.createdAt.toISOString().split('T')[0];
+    if (!acc[date]) {
+      acc[date] = 0;
+    }
+    acc[date] += sale.total;
+    return acc;
+  }, {});
 
-  // 4. Gross Profit = Sales – COGS
-  const { parameters: grossProfitParams, result: grossProfit } = calculateGrossProfit({ totalSales, costOfGoodsSold });
+  // Group purchases by date
+  const purchasesByDate = purchaseItems.reduce((acc, item) => {
+    const date = item.purchaseOrder.createdAt.toISOString().split('T')[0];
+    if (!acc[date]) {
+      acc[date] = 0;
+    }
+    acc[date] += item.price * item.quantity;
+    return acc;
+  }, {});
 
-  // 5. Net Profit = Gross Profit – Operating Expenses
-  const { parameters: netProfitParams, result: netProfit } = calculateNetProfit({ grossProfit, operatingExpenses });
+  // Get all unique dates from both sales and purchases
+  const allDates = new Set([...Object.keys(salesByDate), ...Object.keys(purchasesByDate)]);
+
+  // Create daily aggregated data
+  const dailyData = Array.from(allDates).sort().map(date => {
+    const totalSales = salesByDate[date] || 0;
+    const totalPurchases = purchasesByDate[date] || 0;
+    const grossProfit = totalSales - totalPurchases;
+
+    return {
+      date,
+      totalSales,
+      totalPurchases,
+      grossProfit,
+    };
+  });
+
+  // Calculate totals for backward compatibility
+  const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
+  const totalPurchases = purchaseItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const grossProfit = totalSales - totalPurchases;
+
+  // Operating Expenses (not including inventory purchases)
+  const operatingExpenses =
+    (
+      await prisma.expense.aggregate({
+        where: { createdAt: dateFilter.createdAt },
+        _sum: { amount: true },
+      })
+    )._sum.amount || 0;
+
+  // Net Profit = Gross Profit – Operating Expenses
+  const netProfit = grossProfit - operatingExpenses;
 
   return {
-    revenue: totalSales,
-    cogs: costOfGoodsSold,
-    operatingExpenses,
-    grossProfit: {
-      parameters: grossProfitParams,
-      result: grossProfit,
-    },
-    netProfit: {
-      parameters: netProfitParams,
-      result: netProfit,
+    dailyData,
+    summary: {
+      revenue: totalSales,
+      cogs: totalPurchases,
+      operatingExpenses,
+      grossProfit,
+      netProfit,
     },
   };
 };
