@@ -1,9 +1,11 @@
 import { PrismaClient } from "@prisma/client";
+import { convertQuantityToBaseUnits, convertQuantityFromBaseUnits } from "../inventory/inventory.service.js";
 const prisma = new PrismaClient();
 
 export async function createInventoryAdjustment({
   inventoryItemId,
   amount,
+  unit,
   reason,
   createdById,
 }) {
@@ -15,7 +17,14 @@ export async function createInventoryAdjustment({
     throw new Error("Inventory item not found.");
   }
 
-  if (amount < 0 && existingInventoryItem.currentQuantity + amount < 0) {
+  // Convert amount from the specified unit to base units for storage
+  const convertedAmount = convertQuantityToBaseUnits(
+    amount,
+    unit,
+    existingInventoryItem.type
+  );
+
+  if (convertedAmount < 0 && existingInventoryItem.currentQuantity + convertedAmount < 0) {
     throw new Error("Adjustment amount cannot make inventory quantity less than zero.");
   }
 
@@ -23,6 +32,7 @@ export async function createInventoryAdjustment({
     data: {
       inventoryItemId,
       amount,
+      unit: unit, // Store the unit used for this adjustment
       reason,
       createdById,
     },
@@ -32,7 +42,7 @@ export async function createInventoryAdjustment({
     where: { id: inventoryItemId },
     data: {
       currentQuantity: {
-        increment: amount,
+        increment: convertedAmount,
       },
     },
   });
@@ -112,5 +122,15 @@ export async function listInventoryAdjustments({
     prisma.inventoryAdjustment.count({ where }),
   ]);
 
-  return { adjustments, total, page, limit };
+  // Convert amounts from base units to display units for frontend
+  const convertedAdjustments = adjustments.map(adjustment => ({
+    ...adjustment,
+    amount: convertQuantityFromBaseUnits(
+      adjustment.amount,
+      adjustment.inventoryItem.unit,
+      adjustment.inventoryItem.type
+    ),
+  }));
+
+  return { adjustments: convertedAdjustments, total, page, limit };
 }

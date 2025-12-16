@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { deductInventoryForProduction } from "../inventory/inventory.service.js";
+import { deductInventoryForProduction, convertPriceFromBaseUnits, convertQuantityFromBaseUnits } from "../inventory/inventory.service.js";
 const prisma = new PrismaClient();
 
 export async function getDetailedProducts() {
@@ -259,12 +259,27 @@ export async function getProductionRunById(runId) {
   });
 
   if (run) {
-    run.ingredientsDeducted = run.ingredientsDeducted.map((d) => ({
-      name: d.inventoryItem.name,
-      amountDeducted: d.amountDeducted,
-      unit: d.unit ,
-      cost: d.amountDeducted * d.inventoryItem.cost,
-    }));
+    run.ingredientsDeducted = run.ingredientsDeducted.map((d) => {
+      // Convert amount from base units to display units
+      const unit = d.unit
+      const displayAmount = convertQuantityFromBaseUnits(
+        d.amountDeducted,
+        d.inventoryItem.unit,
+        d.inventoryItem.type
+      );
+      // Convert cost from base units to display units
+      const displayCost = convertPriceFromBaseUnits(
+        d.inventoryItem.cost,
+        d.inventoryItem.unit
+      ) * displayAmount;
+      
+      return {
+        name: d.inventoryItem.name,
+        amountDeducted: d.amountDeducted,
+        unit: d.unit,
+        cost: d.cost,
+      };
+    });
   }
 
   return run;
@@ -324,10 +339,15 @@ export async function getProductionSummary() {
       },
       select: {
           name: true,
-          currentQuantity: true
+          currentQuantity: true,
+          unit: true,
+          type: true
       }
   });
-  const inventoryQuantityMap = new Map(inventoryItems.map(item => [item.name, item.currentQuantity]));
+  const inventoryQuantityMap = new Map(inventoryItems.map(item => [
+    item.name,
+    convertQuantityFromBaseUnits(item.currentQuantity, item.unit, item.type)
+  ]));
 
   weeklyIngredientUsageList = weeklyIngredientUsageList.map(item => ({
       ...item,

@@ -2,6 +2,62 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 /**
+ * Converts price to base units for storage (per gram/ml for raw materials)
+ * @param {number} price - The price in the given unit
+ * @param {string} unit - The unit (kg, g, l, ml, etc.)
+ * @param {string} type - The inventory type (raw_material, packaging, etc.)
+ * @returns {number} Price in base units
+ */
+export const convertPriceToBaseUnits = (price, unit, type) => {
+  if (type === "raw_material" && (unit === "kg" || unit === "l")) {
+    return price / 1000; // Convert to per gram/ml
+  }
+  return price;
+};
+
+/**
+ * Converts quantity to base units for storage (grams/ml for raw materials)
+ * @param {number} quantity - The quantity in the given unit
+ * @param {string} unit - The unit (kg, g, l, ml, etc.)
+ * @param {string} type - The inventory type (raw_material, packaging, etc.)
+ * @returns {number} Quantity in base units
+ */
+export const convertQuantityToBaseUnits = (quantity, unit, type) => {
+  if (type === "raw_material" && (unit === "kg" || unit === "l")) {
+    return quantity * 1000; // Convert to grams/ml
+  }
+  return quantity;
+};
+
+/**
+ * Converts price from base units for display (per kg/l for raw materials)
+ * @param {number} price - The price in base units
+ * @param {string} unit - The unit (kg, g, l, ml, etc.)
+ * @param {string} [type] - The inventory type (raw_material, packaging, etc.)
+ * @returns {number} Price in display units
+ */
+export const convertPriceFromBaseUnits = (price, unit, type = "raw_material") => {
+  if (type === "raw_material" && (unit === "kg" || unit === "l")) {
+    return price * 1000; // Convert to per kg/l
+  }
+  return price;
+};
+
+/**
+ * Converts quantity from base units for display (kg/l for raw materials)
+ * @param {number} quantity - The quantity in base units
+ * @param {string} unit - The unit (kg, g, l, ml, etc.)
+ * @param {string} [type] - The inventory type (raw_material, packaging, etc.)
+ * @returns {number} Quantity in display units
+ */
+export const convertQuantityFromBaseUnits = (quantity, unit, type = "raw_material") => {
+  if (type === "raw_material" && (unit === "kg" || unit === "l")) {
+    return quantity / 1000; // Convert to kg/l
+  }
+  return quantity;
+};
+
+/**
  * @namespace InventoryService
  * @description Handles all inventory-related business logic.
  */
@@ -17,7 +73,17 @@ export const getAllInventoryItems = async (type) => {
     where.type = type;
   }
   const items = await prisma.inventoryItem.findMany({ where });
-  return items.sort((a, b) => a.name.localeCompare(b.name));
+
+  // Convert prices and quantities back to display units for frontend
+  const convertedItems = items.map(item => ({
+    ...item,
+    cost: convertPriceFromBaseUnits(item.cost, item.unit, item.type),
+    currentQuantity: convertQuantityFromBaseUnits(item.currentQuantity, item.unit, item.type),
+  }));
+
+ // console.log("Converted Items:", convertedItems);
+
+  return convertedItems.sort((a, b) => a.name.localeCompare(b.name));
 };
 
 /**
@@ -28,8 +94,20 @@ export const getAllInventoryItems = async (type) => {
  * @memberof InventoryService
  */
 export const createInventoryItem = async (inventoryItemData, userId) => {
+  const { cost, unit, type, currentQuantity, ...rest } = inventoryItemData;
+
+  // Convert price to base units for storage
+  const convertedCost = convertPriceToBaseUnits(cost, unit, type);
+
+  // Convert quantity to base units for storage
+  const convertedQuantity = convertQuantityToBaseUnits(currentQuantity, unit, type);
+
   const data = {
-    ...inventoryItemData,
+    ...rest,
+    cost: convertedCost,
+    unit,
+    type,
+    currentQuantity: convertedQuantity,
     createdBy: { connect: { id: userId } },
     updatedBy: { connect: { id: userId } },
   };
@@ -43,9 +121,18 @@ export const createInventoryItem = async (inventoryItemData, userId) => {
  * @memberof InventoryService
  */
 export const getInventoryItemById = async (id) => {
-  return await prisma.inventoryItem.findUnique({
+  const item = await prisma.inventoryItem.findUnique({
     where: { id },
   });
+
+  if (!item) return null;
+
+  // Convert back to display units for frontend
+  return {
+    ...item,
+    cost: convertPriceFromBaseUnits(item.cost, item.unit, item.type),
+    currentQuantity: convertQuantityFromBaseUnits(item.currentQuantity, item.unit, item.type),
+  };
 };
 
 /**
@@ -57,10 +144,28 @@ export const getInventoryItemById = async (id) => {
  * @memberof InventoryService
  */
 export const updateInventoryItem = async (id, inventoryItemData, userId) => {
+  const { cost, unit, type, currentQuantity, ...rest } = inventoryItemData;
+
+  // Get existing item to know the type and unit
+  const existingItem = await prisma.inventoryItem.findUnique({
+    where: { id },
+  });
+
+  if (!existingItem) {
+    throw new Error("Inventory item not found");
+  }
+
+  // Convert price and quantity to base units for storage
+  const convertedCost = cost !== undefined ? convertPriceToBaseUnits(cost, unit || existingItem.unit, type || existingItem.type) : undefined;
+  const convertedQuantity = currentQuantity !== undefined ? convertQuantityToBaseUnits(currentQuantity, unit || existingItem.unit, type || existingItem.type) : undefined;
+
   const data = {
-    ...inventoryItemData,
+    ...rest,
+    ...(convertedCost !== undefined && { cost: convertedCost }),
+    ...(convertedQuantity !== undefined && { currentQuantity: convertedQuantity }),
     updatedBy: { connect: { id: userId } },
   };
+
   return await prisma.inventoryItem.update({
     where: { id },
     data,
@@ -91,7 +196,6 @@ export const deductInventoryForProduction = async (ingredients) => {
   for (const ingredient of ingredients) {
     const { inventoryItemId, amountDeducted, unit } = ingredient;
 
-    //console.log(unit, amountDeducted)
     const inventoryItem = await prisma.inventoryItem.findUnique({
       where: { id: inventoryItemId },
     });
@@ -100,28 +204,30 @@ export const deductInventoryForProduction = async (ingredients) => {
       throw new Error(`Inventory item with ID ${inventoryItemId} not found.`);
     }
 
-    if (inventoryItem.currentQuantity < amountDeducted) {
+    // Convert amountDeducted to base units for comparison and deduction
+    const amountDeductedBase = convertQuantityToBaseUnits(amountDeducted, unit, inventoryItem.type);
+
+    if (inventoryItem.currentQuantity < amountDeductedBase) {
       throw new Error(
         `Not enough stock for inventory item ${inventoryItem.name}.`
       );
     }
 
-   
-    const costOfDeduction = inventoryItem.cost * amountDeducted;
-    
-   // console.log('Cost of Deduction:', costOfDeduction);
+    // Cost is already stored in base units, so costOfDeduction is correct
+    const costOfDeduction = inventoryItem.cost * amountDeductedBase;
+
     await prisma.inventoryItem.update({
       where: { id: inventoryItemId },
       data: {
         currentQuantity: {
-          decrement: amountDeducted,
+          decrement: amountDeductedBase,
         },
       },
     });
 
     results.push({
       inventoryItemId,
-      amountDeducted,
+      amountDeducted: amountDeductedBase, // Store in base units
       cost: costOfDeduction,
       unit
     });
@@ -177,7 +283,11 @@ export const getInventorySummary = async () => {
 
   const formattedMaterialsUsed = materialsUsed.map((item) => ({
     materialName: item.inventoryItem.name,
-    amountDeducted: item.amountDeducted,
+    amountDeducted: convertQuantityFromBaseUnits(
+      item.amountDeducted,
+      item.inventoryItem.unit,
+      item.inventoryItem.type
+    ),
     unit: item.inventoryItem.unit,
     productName: item.productionRun.product.name,
     quantityProduced: item.productionRun.quantityProduced,
@@ -266,7 +376,11 @@ export const getInventorySummary = async () => {
 
   const formattedAdjustments = weeklyAdjustments.map((adj) => ({
     itemName: adj.inventoryItem.name,
-    amount: adj.amount,
+    amount: convertQuantityFromBaseUnits(
+      adj.amount,
+      adj.inventoryItem.unit,
+      adj.inventoryItem.type
+    ),
     unit: adj.inventoryItem.unit,
     reason: adj.reason,
     createdBy: adj.createdBy.name,
