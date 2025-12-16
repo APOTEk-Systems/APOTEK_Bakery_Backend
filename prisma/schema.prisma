@@ -261,6 +261,7 @@ model InventoryAdjustment {
   inventoryItemId Int
   amount          Float
   reason          String?
+  unit            String?
   createdAt       DateTime      @default(now())
   createdById     Int
   createdBy       User          @relation("InventoryAdjustmentCreatedBy", fields: [createdById], references: [id])

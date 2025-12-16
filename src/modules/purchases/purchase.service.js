@@ -224,13 +224,13 @@ export const createGoodsReceipt = async (goodsReceiptData, userId) => {
       let quantityToAdd = receivedItem.receivedQuantity;
       let newCost = poItem.price;
 
-      // ✅ Only convert if it's a raw material
+      // ✅ Convert quantity and price to base units for storage
       if (
         inventoryItem.type === "raw_material" &&
         (inventoryItem.unit === "kg" || inventoryItem.unit === "l")
       ) {
         quantityToAdd *= 1000; // convert kg → g or l → ml
-        newCost /= 1000;
+        newCost /= 1000; // convert price per kg/l to per g/ml
       }
 
       const updateData = {

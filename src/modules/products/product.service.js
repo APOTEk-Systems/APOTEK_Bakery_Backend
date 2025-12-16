@@ -1,5 +1,6 @@
 
 import { PrismaClient } from '@prisma/client';
+import { convertQuantityToBaseUnits, convertQuantityFromBaseUnits } from '../inventory/inventory.service.js';
 const prisma = new PrismaClient();
 
 // Helper function to parse instructions
@@ -58,12 +59,27 @@ export const createProduct = async (productData, userId) => {
   };
 
   if (productRecipes && Array.isArray(productRecipes)) {
+    // Get inventory items to determine type and unit for conversion
+    const inventoryItemIds = productRecipes.map(r => r.inventoryItemId);
+    const inventoryItems = await prisma.inventoryItem.findMany({
+      where: { id: { in: inventoryItemIds } }
+    });
+    
     data.productRecipes = {
-      create: productRecipes.map(recipe => ({
-        amountRequired: recipe.amountRequired,
-        inventoryItemId: recipe.inventoryItemId,
-        unit: recipe.unit
-      }))
+      create: productRecipes.map(recipe => {
+        const inventoryItem = inventoryItems.find(item => item.id === recipe.inventoryItemId);
+        // Convert amount to base units for storage
+        const convertedAmount = convertQuantityToBaseUnits(
+          recipe.amountRequired,
+          recipe.unit,
+          inventoryItem?.type || 'raw_material'
+        );
+        return {
+          amountRequired: convertedAmount,
+          inventoryItemId: recipe.inventoryItemId,
+          unit: recipe.unit
+        };
+      })
     };
   }
 
@@ -151,12 +167,27 @@ export const updateProduct = async (id, productData, userId) => {
   });
 
   if (productRecipes && Array.isArray(productRecipes)) {
+    // Get inventory items to determine type and unit for conversion
+    const inventoryItemIds = productRecipes.map(r => r.inventoryItemId);
+    const inventoryItems = await prisma.inventoryItem.findMany({
+      where: { id: { in: inventoryItemIds } }
+    });
+    
     data.productRecipes = {
-      create: productRecipes.map(recipe => ({
-        amountRequired: recipe.amountRequired,
-        inventoryItemId: recipe.inventoryItemId,
-        unit: recipe.unit
-      }))
+      create: productRecipes.map(recipe => {
+        const inventoryItem = inventoryItems.find(item => item.id === recipe.inventoryItemId);
+        // Convert amount to base units for storage
+        const convertedAmount = convertQuantityToBaseUnits(
+          recipe.amountRequired,
+          recipe.unit,
+          inventoryItem?.type || 'raw_material'
+        );
+        return {
+          amountRequired: convertedAmount,
+          inventoryItemId: recipe.inventoryItemId,
+          unit: recipe.unit
+        };
+      })
     };
   }
 
