@@ -61,10 +61,10 @@ export async function listProductAdjustments({
   if (startDate || endDate) {
     where.createdAt = {};
     if (startDate) {
-      where.createdAt.gte = new Date(startDate);
+      where.createdAt.gte = new Date(startDate).setHours(0, 0, 0, 0);
     }
     if (endDate) {
-      where.createdAt.lte = new Date(endDate);
+      where.createdAt.lte = new Date(endDate).setHours(23, 59, 59, 999);
     }
   }
 
