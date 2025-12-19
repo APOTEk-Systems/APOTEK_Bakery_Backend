@@ -432,8 +432,21 @@ export const getSalesSummary = async () => {
     0
   );
 
-  const daysInMonth = lastDayOfMonth.getDate();
-  const averageDailySales = totalSalesThisMonth / daysInMonth;
+  // Calculate average daily sales based on actual days with sales, not calendar days
+  const currentDate = new Date();
+  const daysPassedThisMonth = currentDate.getDate(); // Days from 1st to current date (19th)
+  
+  // Get unique dates where sales occurred in current month
+  const uniqueSalesDates = new Set(
+    currentMonthSales.map(sale =>
+      new Date(sale.createdAt.getFullYear(), sale.createdAt.getMonth(), sale.createdAt.getDate()).toISOString()
+    )
+  );
+  
+  // Use the minimum of days passed this month and unique sales dates for average calculation
+  // This ensures we only count actual sales days, not calendar days without sales
+  const actualDaysWithSales = Math.min(daysPassedThisMonth, uniqueSalesDates.size);
+  const averageDailySales = actualDaysWithSales > 0 ? totalSalesThisMonth / actualDaysWithSales : 0;
 
   const startOfCurrentWeek = new Date(now);
   startOfCurrentWeek.setDate(now.getDate() - now.getDay()); // Sunday as the start of the week

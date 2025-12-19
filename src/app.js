@@ -29,16 +29,18 @@ const app = express();
 // Global middleware
 const allowedOrigins = ['https://pastry-pros-suite.vercel.app','http://localhost:4173', 'http://localhost:8000', 'http://localhost:8080', 'http://localhost:3000', 'https://bakery.apotek.co.tz'];
 const corsOptions = {
-  origin: (origin, callback) => {
+  origin: (/** @type {string} */ origin, /** @type {(arg0: Error | null, arg1: boolean | undefined) => void} */ callback) => {
     if (allowedOrigins.includes(origin) || !origin) {
       callback(null, true);
     } else {
+      // @ts-ignore
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
 };
 
+// @ts-ignore
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
