@@ -2,10 +2,11 @@ import { Router } from "express";
 import {
   createRunHandler,
   updateRunHandler,
-finalizeRunHandler,
+ finalizeRunHandler,
   listRunsHandler,
   getRunHandler,
   getDetailedProductsHandler,
+  deleteRunHandler,
 } from "./production.controller.js";
 import authMiddleware, { authorize } from '../../middleware/auth.middleware.js';
 
@@ -173,6 +174,26 @@ router.get("/", authMiddleware, authorize(['view:production']), listRunsHandler)
  *       200:
  *         description: Successful response
  */
+/**
+ * @swagger
+ * /api/production/{id}:
+ *   delete:
+ *     tags: [Production]
+ *     summary: Delete a production run
+ *     description: This endpoint deletes a production run. It will restore ingredients to inventory and decrement the product quantity.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Successful response
+ *       400:
+ *         description: Bad request
+ */
+router.delete("/:id", authMiddleware, authorize(['delete:production']), deleteRunHandler);
 router.get("/:id", authMiddleware, authorize(['view:production']), getRunHandler);
 
 export default router;

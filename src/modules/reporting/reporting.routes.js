@@ -28,3 +28,5 @@ router.get('/sales-returns', authMiddleware, authorize(['view:reports']), report
 router.get('/net-profit', authMiddleware, authorize(['view:reports']), reportingController.getNetProfitReport);
 
 export default router;
+
+router.get('/daily-sales', authMiddleware, authorize(['view:reports']), reportingController.getDailySalesReport);

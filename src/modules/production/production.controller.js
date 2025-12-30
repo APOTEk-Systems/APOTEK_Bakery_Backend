@@ -1,4 +1,3 @@
-
 import {
   createProductionRun,
   updateProductionRun,
@@ -6,6 +5,7 @@ import {
   listProductionRuns,
   getProductionRunById,
   getDetailedProducts,
+  deleteProductionRun,
 } from "./production.service.js";
 
 export async function getDetailedProductsHandler(req, res) {
@@ -65,6 +65,17 @@ export async function getRunHandler(req, res) {
   try {
     const run = await getProductionRunById(Number(req.params.id));
     res.json(run);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}
+
+export async function deleteRunHandler(req, res) {
+  try {
+    const runId = Number(req.params.id);
+    const userId = req.user.id;
+    const result = await deleteProductionRun(runId, userId);
+    res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

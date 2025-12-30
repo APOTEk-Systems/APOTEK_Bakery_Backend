@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { deductInventoryForProduction, convertPriceFromBaseUnits, convertQuantityFromBaseUnits } from "../inventory/inventory.service.js";
+import { deductInventoryForProduction, convertPriceFromBaseUnits, convertQuantityFromBaseUnits, convertQuantityToBaseUnits } from "../inventory/inventory.service.js";
 const prisma = new PrismaClient();
 
 export async function getDetailedProducts() {
@@ -448,4 +448,71 @@ export async function getProductionSummary() {
       items: productionVsSalesList,
     },
   };
+}
+
+// Delete a production run (opposite of createProductionRun)
+export async function deleteProductionRun(runId, userId) {
+  console.log(`Starting deletion of production run ${runId}`);
+
+  // Step 1: Get the production run with all related data
+  const run = await prisma.productionRun.findUnique({
+    where: { id: runId },
+    include: {
+      product: true,
+      ingredientsDeducted: {
+        include: {
+          inventoryItem: true,
+        },
+      },
+    },
+  });
+
+  if (!run) {
+    throw new Error("Production run not found.");
+  }
+
+  if (run.status === "FINALIZED") {
+    throw new Error("Cannot delete a finalized production run.");
+  }
+
+  // Step 2: Add back the ingredients to inventory (reverse of deductInventoryForProduction)
+  const restorePromises = run.ingredientsDeducted.map(async (deduction) => {
+    const { inventoryItem, amountDeducted, unit } = deduction;
+    
+    // Convert amount to base units for increment
+    const amountToAdd = convertQuantityToBaseUnits(amountDeducted, unit, inventoryItem.type);
+
+    return prisma.inventoryItem.update({
+      where: { id: inventoryItem.id },
+      data: {
+        currentQuantity: {
+          increment: amountToAdd,
+        },
+      },
+    });
+  });
+
+  await Promise.all(restorePromises);
+  console.log("Ingredients successfully restored to inventory.");
+
+  // Step 3: Decrement the product quantity (reverse of increment)
+  await prisma.product.update({
+    where: { id: run.productId },
+    data: {
+      quantity: {
+        decrement: run.quantityProduced
+      }
+    },
+  });
+  console.log(`Product quantity for ID ${run.productId} decremented by ${run.quantityProduced}.`);
+
+  // Step 4: Delete the production run and all related records
+  // This will cascade delete the ingredientsDeducted records due to foreign key constraints
+  await prisma.productionRun.delete({
+    where: { id: runId },
+  });
+  console.log(`Production run ${runId} and related records deleted.`);
+
+  console.log("Production run deletion successfully completed.");
+  return { message: "Production run deleted successfully" };
 }

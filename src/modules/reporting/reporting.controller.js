@@ -236,3 +236,15 @@ export const getNetProfitReport = async (req, res) => {
   const report = await reportingService.generateNetProfitReport(req.query);
   res.json({ data: report });
 };
+
+
+/**
+ * Responds with a daily sales report.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @memberof ReportingController
+ */
+export const getDailySalesReport = async (req, res) => {
+  const report = await reportingService.generateDailySalesReport(req.query);
+  res.json({ data: report });
+};

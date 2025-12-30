@@ -943,3 +943,65 @@ export const generateNetProfitReport = async (params) => {
 };
 
 
+
+
+/**
+ * Generates a daily sales report.
+ * @param {object} params - Parameters for the report (e.g., startDate, endDate).
+ * @returns {Promise<Array>} A promise that resolves to the daily sales report data.
+ * @memberof ReportingService
+ */
+export const generateDailySalesReport = async (params) => {
+  const dateFilter = applyDateRangeFilter(params);
+
+  // Get all sales within date range
+  const sales = await prisma.sale.findMany({
+    where: dateFilter,
+    select: { total: true, createdAt: true },
+  });
+
+  // Get all production runs within date range to calculate production costs
+  const productionRuns = await prisma.productionRun.findMany({
+    where: dateFilter,
+    select: { cost: true, createdAt: true },
+  });
+
+  // Group sales by date
+  const salesByDate = sales.reduce((acc, sale) => {
+    const date = sale.createdAt.toISOString().split('T')[0];
+    if (!acc[date]) {
+      acc[date] = 0;
+    }
+    acc[date] += sale.total;
+    return acc;
+  }, {});
+
+  // Group production costs by date
+  const productionCostsByDate = productionRuns.reduce((acc, run) => {
+    const date = run.createdAt.toISOString().split('T')[0];
+    if (!acc[date]) {
+      acc[date] = 0;
+    }
+    acc[date] += run.cost;
+    return acc;
+  }, {});
+
+  // Get all unique dates from both sales and production
+  const allDates = new Set([...Object.keys(salesByDate), ...Object.keys(productionCostsByDate)]);
+
+  // Create daily aggregated data
+  const dailyData = Array.from(allDates).sort().map(date => {
+    const totalSales = salesByDate[date] || 0;
+    const productionCost = productionCostsByDate[date] || 0;
+    const profit = totalSales - productionCost;
+
+    return {
+      date,
+      totalSales,
+      productionCost,
+      profit,
+    };
+  });
+
+  return dailyData;
+};
