@@ -27,7 +27,7 @@ import swaggerUiDist from 'swagger-ui-dist';
 const app = express();
 
 // Global middleware
-const allowedOrigins = ['https://pastry-pros-suite.vercel.app','http://localhost:4173', 'http://localhost:8000', 'http://localhost:8080', 'http://localhost:3000', 'https://bakery.apotek.co.tz'];
+const allowedOrigins = ['https://pastry-pros-suite.vercel.app','http://localhost:4173', 'http://localhost:8000', 'http://localhost:8080', 'http://localhost:3000', 'https://bakery.apotek.co.tz', "https://www.bakery.apotek.co.tz"];
 const corsOptions = {
   origin: (/** @type {string} */ origin, /** @type {(arg0: Error | null, arg1: boolean | undefined) => void} */ callback) => {
     if (allowedOrigins.includes(origin) || !origin) {
