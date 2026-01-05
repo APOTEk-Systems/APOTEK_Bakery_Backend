@@ -954,54 +954,90 @@ export const generateNetProfitReport = async (params) => {
 export const generateDailySalesReport = async (params) => {
   const dateFilter = applyDateRangeFilter(params);
 
-  // Get all sales within date range
+  // Get all sales with items within date range
   const sales = await prisma.sale.findMany({
     where: dateFilter,
-    select: { total: true, createdAt: true },
+    include: {
+      items: {
+        include: {
+          product: true
+        }
+      }
+    }
   });
 
   // Get all production runs within date range to calculate production costs
   const productionRuns = await prisma.productionRun.findMany({
     where: dateFilter,
-    select: { cost: true, createdAt: true },
+    include: {
+      product: true
+    }
   });
 
-  // Group sales by date
-  const salesByDate = sales.reduce((acc, sale) => {
-    const date = sale.createdAt.toISOString().split('T')[0];
-    if (!acc[date]) {
-      acc[date] = 0;
-    }
-    acc[date] += sale.total;
-    return acc;
-  }, {});
-
-  // Group production costs by date
-  const productionCostsByDate = productionRuns.reduce((acc, run) => {
+  // Create a map of product costs by productId and date
+  const productCostsByDate = productionRuns.reduce((acc, run) => {
     const date = run.createdAt.toISOString().split('T')[0];
+    const productId = run.productId;
+
     if (!acc[date]) {
-      acc[date] = 0;
+      acc[date] = {};
     }
-    acc[date] += run.cost;
+    if (!acc[date][productId]) {
+      acc[date][productId] = 0;
+    }
+    acc[date][productId] += run.cost;
     return acc;
   }, {});
 
-  // Get all unique dates from both sales and production
-  const allDates = new Set([...Object.keys(salesByDate), ...Object.keys(productionCostsByDate)]);
+  // Process sales to create product-level profit report
+  const productLevelData = sales.flatMap(sale => {
+    const date = sale.createdAt.toISOString().split('T')[0];
 
-  // Create daily aggregated data
-  const dailyData = Array.from(allDates).sort().map(date => {
-    const totalSales = salesByDate[date] || 0;
-    const productionCost = productionCostsByDate[date] || 0;
-    const profit = totalSales - productionCost;
+    return sale.items.map(item => {
+      // Calculate cost for this product on this date
+      const productCost = productCostsByDate[date]?.[item.productId] || 0;
 
-    return {
-      date,
-      totalSales,
-      productionCost,
-      profit,
-    };
+      // Calculate cost per unit (pro-rate the production cost)
+      const costPerUnit = productCost / (item.quantity || 1);
+
+      return {
+        Date: date,
+        Product: item.product.name,
+        'Qty Sold': item.quantity,
+        Sales: item.price * item.quantity,
+        Cost: costPerUnit * item.quantity,
+        Profit: (item.price * item.quantity) - (costPerUnit * item.quantity)
+      };
+    });
   });
 
-  return dailyData;
+  // Aggregate data by date and product
+  const aggregatedData = productLevelData.reduce((acc, item) => {
+    const key = `${item.Date}-${item.Product}`;
+
+    if (!acc[key]) {
+      acc[key] = {
+        Date: item.Date,
+        Product: item.Product,
+        'Qty Sold': 0,
+        Sales: 0,
+        Cost: 0,
+        Profit: 0
+      };
+    }
+
+    acc[key]['Qty Sold'] += item['Qty Sold'];
+    acc[key].Sales += item.Sales;
+    acc[key].Cost += item.Cost;
+    acc[key].Profit += item.Profit;
+
+    return acc;
+  }, {});
+
+  // Convert to array and sort by date
+  const result = Object.values(aggregatedData).sort((a, b) => {
+    return new Date(a.Date).getTime() - new Date(b.Date).getTime();
+  });
+
+  return result;
 };
