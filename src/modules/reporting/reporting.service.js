@@ -948,7 +948,7 @@ export const generateNetProfitReport = async (params) => {
 /**
  * Generates a daily sales report.
  * @param {object} params - Parameters for the report (e.g., startDate, endDate).
- * @returns {Promise<Array>} A promise that resolves to the daily sales report data.
+ * @returns {Promise<object>} A promise that resolves to the daily sales report data with expenses.
  * @memberof ReportingService
  */
 export const generateDailySalesReport = async (params) => {
@@ -974,6 +974,11 @@ export const generateDailySalesReport = async (params) => {
     }
   });
 
+  // Get all expenses within date range
+  const expenses = await prisma.expense.findMany({
+    where: dateFilter
+  });
+
   // Create a map of product costs by productId and date
   const productCostsByDate = productionRuns.reduce((acc, run) => {
     const date = run.createdAt.toISOString().split('T')[0];
@@ -989,6 +994,17 @@ export const generateDailySalesReport = async (params) => {
     return acc;
   }, {});
 
+  // Create a map of expenses by date
+  const expensesByDate = expenses.reduce((acc, expense) => {
+    const date = expense.createdAt.toISOString().split('T')[0];
+
+    if (!acc[date]) {
+      acc[date] = 0;
+    }
+    acc[date] += expense.amount;
+    return acc;
+  }, {});
+
   // Process sales to create product-level profit report
   const productLevelData = sales.flatMap(sale => {
     const date = sale.createdAt.toISOString().split('T')[0];
@@ -1000,13 +1016,17 @@ export const generateDailySalesReport = async (params) => {
       // Calculate cost per unit (pro-rate the production cost)
       const costPerUnit = productCost / (item.quantity || 1);
 
+      // Get daily expense for this date
+      const dailyExpense = expensesByDate[date] || 0;
+
       return {
         Date: date,
         Product: item.product.name,
         'Qty Sold': item.quantity,
         Sales: item.price * item.quantity,
         Cost: costPerUnit * item.quantity,
-        Profit: (item.price * item.quantity) - (costPerUnit * item.quantity)
+        Expense: dailyExpense,
+        Profit: (item.price * item.quantity) - (costPerUnit * item.quantity) - dailyExpense
       };
     });
   });
@@ -1022,6 +1042,7 @@ export const generateDailySalesReport = async (params) => {
         'Qty Sold': 0,
         Sales: 0,
         Cost: 0,
+        Expense: item.Expense, // Daily expense (same for all products on same date)
         Profit: 0
       };
     }
@@ -1029,6 +1050,7 @@ export const generateDailySalesReport = async (params) => {
     acc[key]['Qty Sold'] += item['Qty Sold'];
     acc[key].Sales += item.Sales;
     acc[key].Cost += item.Cost;
+    // Expense remains the same (daily total)
     acc[key].Profit += item.Profit;
 
     return acc;
@@ -1039,5 +1061,8 @@ export const generateDailySalesReport = async (params) => {
     return new Date(a.Date).getTime() - new Date(b.Date).getTime();
   });
 
-  return result;
+  return {
+    productData: result,
+    dailyExpenses: expensesByDate
+  };
 };
