@@ -119,7 +119,14 @@ if (endDate) {
     prisma.productAdjustment.count({ where }),
   ]);
 
-  //console.log(adjustments)
+  const refactoredAdjustments = adjustments.map(adj => ({
+    ...adj,
+   createdBy:adj.createdBy.name,
+   product: adj.product.name,
+  
+  }));
 
-  return { adjustments, total, page, limit };
+  console.log(refactoredAdjustments[0]);
+
+  return { adjustments:refactoredAdjustments, total, page, limit };
 }
