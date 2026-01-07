@@ -37,7 +37,6 @@ jobs:
                 git reset --hard origin/main
               fi
 
-
               npm install
               npm run build || true
 
