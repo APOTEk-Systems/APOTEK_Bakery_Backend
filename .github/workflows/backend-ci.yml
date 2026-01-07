@@ -1,0 +1,52 @@
+name: Deploy Backend (All Tenants)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+
+            TENANTS="mkate demo apotek"
+            BASE=/var/www/bakery-backend
+
+            for TENANT in $TENANTS; do
+              echo "🚀 Deploying backend for $TENANT"
+
+              DIR=$BASE/$TENANT
+              mkdir -p $DIR
+              cd $DIR
+
+              if [ ! -d .git ]; then
+                git clone https://github.com/APOTEk-Systems/APOTEK_Bakery_Backend.git .
+              else
+                git fetch origin
+                git reset --hard origin/main
+              fi
+
+              cd backend
+
+              npm install
+              npm run build || true
+
+              if pm2 list | grep -q "${TENANT}-bakery"; then
+                pm2 reload ${TENANT}-bakery --update-env
+              else
+                pm2 start ecosystem.config.js --name ${TENANT}-bakery
+              fi
+            done

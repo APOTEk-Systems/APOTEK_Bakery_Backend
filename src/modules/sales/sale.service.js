@@ -20,7 +20,7 @@ export const getAllSales = async ({
   startDate,
   page,
   customerName,
-  order
+  order,
 }) => {
   const where = {};
 
@@ -32,9 +32,12 @@ export const getAllSales = async ({
   }
 
   if (startDate && endDate) {
+    const start = new Date(`${startDate}T00:00:00.000Z`);
+    const end = new Date(`${endDate}T23:59:59.999Z`);
+
     where.createdAt = {
-      gte: new Date(new Date(startDate).setHours(0,0,0,0)),
-      lt: new Date(new Date(endDate).setHours(23,59,59,999)),
+      gte: start,
+      lte: end,
     };
   }
 
@@ -46,24 +49,24 @@ export const getAllSales = async ({
     where.status = status;
   }
 
- if (customerName) {
-  const search = customerName.trim();
+  if (customerName) {
+    const search = customerName.trim();
 
-  if (search.toLowerCase() === "cash") {
-    where.customerId = null;
-  } else if (!isNaN(Number(search))) {
-    // Search by sale ID
-    where.id = Number(search);
-  } else {
-    // Search by customer name
-    where.customer = {
-      name: {
-        contains: search,
-        mode: "insensitive",
-      },
-    };
+    if (search.toLowerCase() === "cash") {
+      where.customerId = null;
+    } else if (!isNaN(Number(search))) {
+      // Search by sale ID
+      where.id = Number(search);
+    } else {
+      // Search by customer name
+      where.customer = {
+        name: {
+          contains: search,
+          mode: "insensitive",
+        },
+      };
+    }
   }
-}
 
   const salesRaw = await prisma.sale.findMany({
     where,
@@ -78,7 +81,7 @@ export const getAllSales = async ({
     take: limit,
   });
 
- // console.log(salesRaw);
+  // console.log(salesRaw);
 
   const total = await prisma.sale.count({ where });
 
@@ -357,7 +360,6 @@ export const getPaymentsForSale = async (saleId) => {
   });
 };
 
-
 export const getAllCreditPayments = async () => {
   return await prisma.creditPayment.findMany({
     include: {
@@ -435,18 +437,26 @@ export const getSalesSummary = async () => {
   // Calculate average daily sales based on actual days with sales, not calendar days
   const currentDate = new Date();
   const daysPassedThisMonth = currentDate.getDate(); // Days from 1st to current date (19th)
-  
+
   // Get unique dates where sales occurred in current month
   const uniqueSalesDates = new Set(
-    currentMonthSales.map(sale =>
-      new Date(sale.createdAt.getFullYear(), sale.createdAt.getMonth(), sale.createdAt.getDate()).toISOString()
+    currentMonthSales.map((sale) =>
+      new Date(
+        sale.createdAt.getFullYear(),
+        sale.createdAt.getMonth(),
+        sale.createdAt.getDate()
+      ).toISOString()
     )
   );
-  
+
   // Use the minimum of days passed this month and unique sales dates for average calculation
   // This ensures we only count actual sales days, not calendar days without sales
-  const actualDaysWithSales = Math.min(daysPassedThisMonth, uniqueSalesDates.size);
-  const averageDailySales = actualDaysWithSales > 0 ? totalSalesThisMonth / actualDaysWithSales : 0;
+  const actualDaysWithSales = Math.min(
+    daysPassedThisMonth,
+    uniqueSalesDates.size
+  );
+  const averageDailySales =
+    actualDaysWithSales > 0 ? totalSalesThisMonth / actualDaysWithSales : 0;
 
   const startOfCurrentWeek = new Date(now);
   startOfCurrentWeek.setDate(now.getDate() - now.getDay()); // Sunday as the start of the week
@@ -522,5 +532,4 @@ export const getSalesSummary = async () => {
     },
     dailySalesList,
   };
-
 };

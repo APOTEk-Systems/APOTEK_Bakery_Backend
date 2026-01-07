@@ -4,7 +4,8 @@ const prisma = new PrismaClient();
 
 async function main() {
   try {
-   await prisma.inventoryAdjustment.deleteMany()
+   const adj = await prisma.inventoryAdjustment.findMany()
+    console.log(adj);
   } catch (error) {
     console.error("Error fetching users:", error);
     throw error;
