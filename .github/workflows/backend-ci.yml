@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "backend/**"
 
 jobs:
   deploy:
@@ -24,22 +26,25 @@ jobs:
 
             cd /var/www/bakery-backend
 
-            echo "📦 Pulling latest backend code"
+            echo "📦 Pulling shared backend repo"
             git pull origin main
 
             echo "📁 Ensuring tenant directories exist"
             mkdir -p mkate demo apotek
 
-            echo "📦 Installing dependencies for all tenants"
-            for dir in mkate demo apotek; do
-              cd /var/www/bakery-backend/$dir
-              npm install
-              npm run build
+            for tenant in mkate demo apotek; do
+              cd /var/www/bakery-backend/$tenant
+
+              if [ -d ".git" ]; then
+                echo "🔄 Deploying backend for $tenant"
+                npm install
+                npm run build
+              else
+                echo "⏭️ Skipping $tenant (no git repo)"
+              fi
             done
 
             echo "🚀 Restarting backend via PM2"
             cd /var/www/bakery-backend
             pm2 start ecosystem.config.js || pm2 reload ecosystem.config.js
-
             pm2 save
-            echo "✅ Deployment complete"
