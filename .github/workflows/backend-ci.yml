@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - main
-  
-
+ 
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -17,33 +16,41 @@ jobs:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            set -e
+            set -euo pipefail
 
-            cd /var/www/bakery-backend
-
-            echo "📦 Pulling shared backend repo"
-            git pull origin main
-
+            BASE_DIR="/var/www/bakery-backend"
             echo "📁 Ensuring tenant directories exist"
-            mkdir -p mkate demo apotek
+            mkdir -p "$BASE_DIR/mkate" "$BASE_DIR/demo" "$BASE_DIR/apotek"
 
             for tenant in mkate demo apotek; do
-              cd /var/www/bakery-backend/$tenant
+              TENANT_DIR="$BASE_DIR/$tenant"
 
-              if [ -d ".git" ]; then
+              if [ -d "$TENANT_DIR/.git" ]; then
                 echo "🔄 Deploying backend for $tenant"
+
+                cd "$TENANT_DIR"
+
+                # Reset local changes
+                git reset --hard
+
+                # Pull latest code
+                git pull origin main || echo "⚠️ git pull failed for $tenant, skipping"
+
+                echo "📦 Installing dependencies"
                 npm install
-                npm run build
+
               else
                 echo "⏭️ Skipping $tenant (no git repo)"
               fi
             done
 
             echo "🚀 Restarting backend via PM2"
-            cd /var/www/bakery-backend
+            cd "$BASE_DIR"
             pm2 start ecosystem.config.js || pm2 reload ecosystem.config.js
             pm2 save
+
+            echo "✅ Deployment complete"
