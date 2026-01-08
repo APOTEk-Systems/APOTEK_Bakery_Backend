@@ -12,7 +12,7 @@ const router = Router();
  *   description: User authentication and authorization
  */
 
-  // This Route Should Be uncommented only in dev mode
+
 
   /**
    * @swagger
@@ -49,7 +49,7 @@ const router = Router();
    *       201:
    *         description: User registered successfully.
    */
- // router.post('/register', authController.register);
+ router.post('/register', authController.register);
 
 
 /**
