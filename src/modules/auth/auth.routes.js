@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as authController from './auth.controller.js';
 import authMiddleware, { authorize } from '../../middleware/auth.middleware.js';
 import { loginRateLimiter } from '../../middleware/rate-limiter.js';
+import { provisionAuth } from '../../middleware/provision.middleware.js';
 
 const router = Router();
 
@@ -49,7 +50,7 @@ const router = Router();
    *       201:
    *         description: User registered successfully.
    */
- router.post('/register', authController.register);
+ router.post('/register', provisionAuth, authController.register);
 
 
 /**

@@ -11,11 +11,8 @@ const hashToken = (token) => {
 };
 
 export const registerUser = async (userData) => {
-  const { email, password, name, roleName, permissions, registerToken, ...rest } = userData;
+  const { email, password, name, roleName, permissions, ...rest } = userData;
 
-  if(registerToken !== process.env.REGISTER_TOKEN) {
-    throw new Error('Invalid registration token');
-  }
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
