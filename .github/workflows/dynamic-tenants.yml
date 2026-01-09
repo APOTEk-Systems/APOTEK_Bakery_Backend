@@ -3,9 +3,7 @@ name: Deploy Backend (Dynamic Tenants)
 on:
   push:
     branches: [main]
-    paths:
-      - "tenant/**"
-  workflow_dispatch:
+    
 
 jobs:
   deploy:
@@ -44,6 +42,7 @@ jobs:
               cd tenant
               npm install --production=false
               npm run build
+
               cd ..
 
               PM2_APP="${TENANT}-backend"
