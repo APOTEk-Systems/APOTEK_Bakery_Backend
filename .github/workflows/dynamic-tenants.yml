@@ -49,15 +49,15 @@ jobs:
               npm install --production=false
               
 
-              PM2_APP="${TENANT}-backend"
+            PM2_APP="${TENANT}-backend"
 
-              if pm2 list | grep -q "$PM2_APP"; then
-                echo "♻️ Reloading PM2 app: $PM2_APP"
-                pm2 reload ecosystem.config.js --only "$PM2_APP" --update-env
-              else
-                echo "▶️ Starting PM2 app: $PM2_APP"
-                pm2 start ecosystem.config.js --only "$PM2_APP"
-              fi
+            if pm2 list | grep -q "$PM2_APP"; then
+              echo "♻️ Reloading PM2 app: $PM2_APP"
+              pm2 reload "$PM2_APP"
+            else
+              echo "▶️ Starting PM2 app: $PM2_APP"
+              pm2 start src/server.js --name "$PM2_APP"
+            fi
               
               echo "✅ Completed deployment for $TENANT"
 
