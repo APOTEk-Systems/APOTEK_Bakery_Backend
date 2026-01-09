@@ -12,7 +12,7 @@ jobs:
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.TEST_SSH_KEY }}" > ~/.ssh/id_ed25519
+          echo "${{ secrets.TEST_SSH_KEY}}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
           # Add server to known_hosts to prevent host verification prompts
@@ -27,7 +27,7 @@ jobs:
         with:
           host: ${{ secrets.TEST_SSH_HOST }}
           username: ${{ secrets.TEST_SSH_USER }}
-          key: ${{ secrets.TEST_SSH_KEY }}
+          key: ${{ secrets.TEST_SSH_KEY}}
           script: |
             set -e
 
