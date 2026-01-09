@@ -23,7 +23,7 @@ jobs:
           chmod 600 ~/.ssh/config
 
       - name: Deploy backend to VPS
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.TEST_SSH_HOST }}
           username: ${{ secrets.TEST_SSH_USER }}
