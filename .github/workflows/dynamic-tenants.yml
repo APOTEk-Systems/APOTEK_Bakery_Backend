@@ -9,33 +9,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Add this step to verify secrets are actually set
-      - name: Debug SSH Key format
-        run: |
-          echo "Host: ${{ secrets.TEST_SSH_HOST }}"
-          echo "Username: ${{ secrets.TEST_SSH_USER }}"
-          echo ""
-          echo "Key starts with:"
-          echo "$SSH_KEY" | head -c 50
-          echo ""
-          echo "Key ends with:"
-          echo "$SSH_KEY" | tail -c 50
-          echo ""
-          echo "Key line count:"
-          echo "$SSH_KEY" | wc -l
-          echo ""
-          echo "First line of key:"
-          echo "$SSH_KEY" | head -n 1
-        env:
-          SSH_KEY: ${{ secrets.TEST_SSH_KEY }}
-      
       - name: Deploy backend to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.TEST_SSH_HOST }}
-          username: root
+          username: ${{ secrets.TEST_SSH_USER }}
           key: ${{ secrets.TEST_SSH_KEY }}
-          debug: true
           script: |
             set -e
 
@@ -44,26 +23,31 @@ jobs:
             echo "📂 Scanning tenants in $BASE_DIR"
 
             for BACKEND_DIR in $BASE_DIR/*/backend; do
+              # Skip if the glob didn't match anything
+              [ -d "$BACKEND_DIR" ] || continue
+              
               TENANT=$(basename $(dirname "$BACKEND_DIR"))
-              echo "🚀 Deploying backend for tenant: $TENANT from $BACKEND_DIR"
-
+              echo "========================================="
+              echo "🚀 Deploying backend for tenant: $TENANT"
+              echo "📁 Backend directory: $BACKEND_DIR"
+              
               if [ ! -d "$BACKEND_DIR/.git" ]; then
                 echo "❌ Git repo missing in $BACKEND_DIR, skipping $TENANT"
                 continue
               fi
 
               cd "$BACKEND_DIR"
+              
+              echo "📂 Current directory contents:"
+              ls -la
 
               echo "📥 Pulling latest code"
               git fetch origin
               git reset --hard origin/main
 
-              echo "📦 Installing dependencies and building"
-              cd tenant
+              echo "📦 Installing dependencies"
               npm install --production=false
-              npm run build
-
-              cd ..
+              
 
               PM2_APP="${TENANT}-backend"
 
@@ -74,8 +58,13 @@ jobs:
                 echo "▶️ Starting PM2 app: $PM2_APP"
                 pm2 start ecosystem.config.js --only "$PM2_APP"
               fi
+              
+              echo "✅ Completed deployment for $TENANT"
 
             done
 
+            echo "========================================="
             echo "💾 Saving PM2 process list"
             pm2 save
+            
+            echo "✅ All tenants deployed successfully!"
