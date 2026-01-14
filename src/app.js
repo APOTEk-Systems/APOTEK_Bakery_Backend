@@ -1,8 +1,8 @@
 //@ts-check
 
 import express from 'express';
-import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import cors from 'cors';
 import csrf from 'csurf';
 import productModule from './modules/products/index.js';
 import userModule from './modules/users/index.js';
@@ -27,20 +27,21 @@ import swaggerUiDist from 'swagger-ui-dist';
 const app = express();
 
 // Global middleware
-// const allowedOrigins = ['https://pastry-pros-suite.vercel.app','http://localhost:4173', 'http://localhost:8000', 'http://localhost:8080', 'http://localhost:3000', 'https://bakery.apotek.co.tz', "https://www.bakery.apotek.co.tz", "https://mkate.apotekbakery.co.tz", "https://www.mkate.apotekbakery.co.tz"];
-// const corsOptions = {
-//   origin: (/** @type {string} */ origin, /** @type {(arg0: Error | null, arg1: boolean | undefined) => void} */ callback) => {
-//     if (allowedOrigins.includes(origin) || !origin) {
-//       callback(null, true);
-//     } else {
-//       // @ts-ignore
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   credentials: true,
-// };
+const allowedOrigins = ['https://pastry-pros-suite.vercel.app','http://localhost:4173', 'http://localhost:8000', 'http://localhost:8080', 'http://localhost:3000', 'https://bakery.apotek.co.tz', "https://www.bakery.apotek.co.tz", "https://mkate.apotekbakery.co.tz", "https://www.mkate.apotekbakery.co.tz"];
+const corsOptions = {
+  origin: (/** @type {string} */ origin, /** @type {(arg0: Error | null, arg1: boolean | undefined) => void} */ callback) => {
+    if (allowedOrigins.includes(origin) || !origin) {
+      callback(null, true);
+    } else {
+      // @ts-ignore
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+};
 
 // @ts-ignore
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
