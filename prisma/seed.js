@@ -1,20 +1,55 @@
-import { PrismaClient } from "@prisma/client";
+const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcrypt");
 
 const prisma = new PrismaClient();
 
 async function main() {
-  try {
-   const adj = await prisma.inventoryAdjustment.findMany()
-    console.log(adj);
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    throw error;
-  } finally {
-    await prisma.$disconnect();
-  }
+const email = "[admin@bakery.com](mailto:admin@bakery.com)";
+
+const existingUser = await prisma.user.findUnique({
+where: { email }
+});
+
+if (existingUser) {
+console.log("Admin already exists");
+return;
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
+const hashedPassword = await bcrypt.hash("Admin123!", 10);
+
+const role = await prisma.userRole.upsert({
+where: { name: "admin" },
+update: {
+permissions: ["all"]
+},
+create: {
+name: "admin",
+permissions: ["all"]
+}
+});
+
+const admin = await prisma.user.create({
+data: {
+name: "Admin",
+email,
+password: hashedPassword,
+phoneNumber: null,
+role: {
+connect: {
+id: role.id
+}
+}
+}
+});
+
+console.log("Admin created:", admin.email);
+}
+
+main()
+.catch((e) => {
+console.error(e);
+process.exit(1);
+})
+.finally(async () => {
+await prisma.$disconnect();
 });
